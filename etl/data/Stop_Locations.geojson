@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "Stop Locations",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Name": "Nashville, TN: Start Line\n", "description": "Adventure Science Center", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -86.7755516, 36.1467985 ] } },
+{ "type": "Feature", "properties": { "Name": "Paducah, KY: Checkpoint\n", "description": "Downtown Farmers Market", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -88.5964489, 37.0894507 ] } },
+{ "type": "Feature", "properties": { "Name": "Edwardsville, IL: Stage Stop\n", "description": "Southern Illinois University Edwardsville", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -90.0020335, 38.7935809 ] } },
+{ "type": "Feature", "properties": { "Name": "Jefferson City, MO: Checkpoint\n", "description": "Missouri State Capitol", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -92.173768, 38.578568 ] } },
+{ "type": "Feature", "properties": { "Name": "Independence, MO: Checkpoint\n", "description": "Uptown Farmers Market<br><br>Note: This checkpoint has no loop option. Teams continue on the route after their hold time.", "Note": "This checkpoint has no loop option. Teams continue on the route after their hold time." }, "geometry": { "type": "Point", "coordinates": [ -94.4177129, 39.093548 ] } },
+{ "type": "Feature", "properties": { "Name": "St. Joseph, MO: Stage Stop\n", "description": "Pony Express National Museum", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -94.8477333, 39.7560455 ] } },
+{ "type": "Feature", "properties": { "Name": "Beatrice, NE: Checkpoint\n", "description": "Homestead National Historical Park", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -96.8259865, 40.2852992 ] } },
+{ "type": "Feature", "properties": { "Name": "Kearney, NE: Checkpoint\n", "description": "Kearney Archway", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -99.0392306, 40.6705069 ] } },
+{ "type": "Feature", "properties": { "Name": "Gering, NE: Stage Stop\n", "description": "Scotts Bluff National Monument", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -103.7068893, 41.8283031 ] } },
+{ "type": "Feature", "properties": { "Name": "Casper, WY: Finish Line\n", "description": "National Historic Trails Interpretive Center", "Note": null }, "geometry": { "type": "Point", "coordinates": [ -106.3368511, 42.8669265 ] } }
+]
+}
