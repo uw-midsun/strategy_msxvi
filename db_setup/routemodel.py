@@ -1,7 +1,11 @@
-# from db_setup.init import connect_to_db
+from init import connect_to_db
+from dotenv import load_dotenv
+import os
 import numpy as np # Import for numpy array
 import gpxpy # Import to allow easier parsing of gpx file
 import math
+
+load_dotenv()
 
 def gpx_parser(output_file="output.txt"):
     """
@@ -108,15 +112,66 @@ def orientation_calc(lats, lons):
 
 def init_table():
     """
-    Create table for route-model in postgres database.
+    Creates six-column unindexed table for route_model in postgres database.
+    Presumes the postgres database has already been created.
+    If table already exists, logs an error and does nothing.
     """
+    connection = connect_to_db(
+        db_user=os.getenv("DB_USER"),
+        db_host=os.getenv("HOST"),
+        db_name=os.getenv("DB_NAME"),
+        db_password=os.getenv("DB_PASSWORD")
+    )
+
+    connection.autocommit = True
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("""
+            CREATE TABLE route_model (
+                stage_name       VARCHAR(255),
+                lat              FLOAT,
+                long             FLOAT,
+                elevation        FLOAT,
+                distance         FLOAT,
+                orientation      FLOAT,
+            );
+        """)
+    except Exception as e:
+        print(f"Error: Could not create route_model table in postgres database: {e}")
+    finally:
+        cursor.close()
+        connection.close()
+
     return None
 
 
-def insert_data():
+def insert_data(txt_filepath):
     """
-    Insert data into routmodel table in postgres database
+    Insert data into route_model table in postgres database
     """
+    connection = connect_to_db(
+        db_user=os.getenv("DB_USER"),
+        db_host=os.getenv("HOST"),
+        db_name=os.getenv("DB_NAME"),
+        db_password=os.getenv("DB_PASSWORD")
+    )
+    
+    connection.autocommit = True
+    cursor = connection.cursor()
+
+    try:
+        with open(txt_filepath, 'r') as f:
+            next(f)  # skip header
+            cursor.copy_from(f, 'route_model', sep=',')
+    except Exception as e:
+        print(f"Error: Could not insert data into route_model table in postgres database: {e}")
+    finally:
+        cursor.close()
+        connection.close()
+
     return None
+
 
 gpx_parser("gpx_output.txt")
+insert_data("gpx_output.txt")
