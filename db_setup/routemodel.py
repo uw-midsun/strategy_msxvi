@@ -112,7 +112,7 @@ def orientation_calc(lats, lons):
 
 def init_table():
     """
-    Creates six-column unindexed table for routemodel in postgres database.
+    Creates six-column unindexed table for route_model in postgres database.
     Presumes the postgres database has already been created.
     If table already exists, logs an error and does nothing.
     """
@@ -128,7 +128,7 @@ def init_table():
 
     try:
         cursor.execute("""
-            CREATE TABLE routemodel (
+            CREATE TABLE route_model (
                 stage_name       VARCHAR(255),
                 lat              FLOAT,
                 long             FLOAT,
@@ -138,7 +138,7 @@ def init_table():
             );
         """)
     except Exception as e:
-        print(f"Error: Could not create routemodel table in postgres database: {e}")
+        print(f"Error: Could not create route_model table in postgres database: {e}")
     finally:
         cursor.close()
         connection.close()
@@ -148,7 +148,7 @@ def init_table():
 
 def insert_data(txt_filepath):
     """
-    Insert data into routmodel table in postgres database
+    Insert data into route_model table in postgres database
     """
     connection = connect_to_db(
         db_user=os.getenv("DB_USER"),
@@ -163,9 +163,9 @@ def insert_data(txt_filepath):
     try:
         with open(txt_filepath, 'r') as f:
             next(f)  # skip header
-            cursor.copy_from(f, 'routemodel', sep=',')
+            cursor.copy_from(f, 'route_model', sep=',')
     except Exception as e:
-        print(f"Error: Could not insert data into routemodel table in postgres database: {e}")
+        print(f"Error: Could not insert data into route_model table in postgres database: {e}")
     finally:
         cursor.close()
         connection.close()
