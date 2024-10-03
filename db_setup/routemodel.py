@@ -74,7 +74,20 @@ def distance_calc():
     """
     Calculate cumulative distances of a stage at each point.
     """
+    # checking longitude and latitude array lengths
+    if len(latitudes) != len(longitudes):
+        raise ValueError("Issue in arrays.")
+    
+    # initializing cumulative distance array
     distances = []
+    sum_distance = 0
+
+    # applying euclidean distances method
+    for i in range(len(longitudes) - 1):
+        current_distance = np.sqrt(((latitudes[i + 1] - latitudes[i])**2) + ((longitudes[i + 1] - longitudes[i])**2))
+        sum_distance = sum_distance + current_distance
+        distances.append(sum_distance)
+
     return distances
 
 
