@@ -17,6 +17,7 @@ def gpx_parser(output_file="output.txt"):
     - elevation (m)
     - distance (km)
     - orientation (deg)
+    - road angle (deg)
 
     As the respective columns.
     """
@@ -29,7 +30,7 @@ def gpx_parser(output_file="output.txt"):
     elevations = []
 
     # Open gpx file and utilize gpxpy to parse the file
-    with open("gpx_asc24/0_FullBaseRoute.gpx", "r") as gpx_file:
+    with open("db_setup/gpx_asc24/0_FullBaseRoute.gpx", "r") as gpx_file:
         # gpxpy stores the data in a much easier readable format
         gpx = gpxpy.parse(gpx_file)
 
@@ -43,7 +44,7 @@ def gpx_parser(output_file="output.txt"):
                 elevations.append(points.elevation)
     
     # Stores distance and orientation from returned data
-    distance = distance_calc()
+    distance = distance_calc(lats, lons)
     orientation = orientation_calc(lats, lons)
     
     # Convert lists to numpy arrays
@@ -57,20 +58,22 @@ def gpx_parser(output_file="output.txt"):
     # Zip the individual arrays together 
     # Specify a structured dtype (data type) for each column
     # Need to add distance and orientation after
-    data = np.array(list(zip(np_stage_names, np_lats, np_lons, np_elevations)), dtype=[
+    data = np.array(list(zip(np_stage_names, np_lats, np_lons, np_elevations, np_distance, np_orientation)), dtype=[
             ('stage_name', 'U50'), 
             ('lat', 'f8'), 
             ('lon', 'f8'), 
-            ('ele', 'f8') 
+            ('ele', 'f8'), 
+            ('distance', 'f8'),
+            ('orientation', 'f8'),
         ])
 
     # To test
-    np.savetxt(output_file, data, fmt="%s,%.8f,%.8f,%.2f", header="Stage Name, Latitude, Longitude, Elevation", delimiter=',', comments='')
+    np.savetxt(output_file, data, fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f", header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation", delimiter=',', comments='')
     
     return data
 
 
-def distance_calc():
+def distance_calc(latitudes, longitudes):
     """
     Calculate cumulative distances of a stage at each point.
     """
@@ -147,7 +150,7 @@ def init_table():
                 long             FLOAT,
                 elevation        FLOAT,
                 distance         FLOAT,
-                orientation      FLOAT,
+                orientation      FLOAT
             );
         """)
     except Exception as e:
@@ -186,5 +189,15 @@ def insert_data(txt_filepath):
     return None
 
 
+def gradient_calculator(lats, lons, elevations):
+    '''
+    Calculates the angle of the road and assigns it to each point
+    '''
+
+    
+    
+
+
 gpx_parser("gpx_output.txt")
+init_table()
 insert_data("gpx_output.txt")
