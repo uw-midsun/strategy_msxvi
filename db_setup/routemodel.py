@@ -30,7 +30,7 @@ def gpx_parser(output_file="output.txt"):
     elevations = []
 
     # Open gpx file and utilize gpxpy to parse the file
-    with open("db_setup/gpx_asc24/0_FullBaseRoute.gpx", "r") as gpx_file:
+    with open("gpx_asc24/0_FullBaseRoute.gpx", "r") as gpx_file:
         # gpxpy stores the data in a much easier readable format
         gpx = gpxpy.parse(gpx_file)
 
@@ -199,5 +199,4 @@ def gradient_calculator(lats, lons, elevations):
 
 
 gpx_parser("gpx_output.txt")
-init_table()
 insert_data("gpx_output.txt")
