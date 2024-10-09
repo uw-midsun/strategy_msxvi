@@ -7,7 +7,7 @@ import math
 
 load_dotenv()
 
-def gpx_parser(output_file="output.txt"):
+def gpx_parser(output_file="output_w3.txt"):
     """
     Convert gpx files into an array with
     
@@ -17,6 +17,7 @@ def gpx_parser(output_file="output.txt"):
     - elevation (m)
     - distance (km)
     - orientation (deg)
+    - smoothed elevation (m)
     - road angle (deg)
 
     As the respective columns.
@@ -46,39 +47,44 @@ def gpx_parser(output_file="output.txt"):
     # Stores distance and orientation from returned data
     distance = distance_calc(lats, lons)
     orientation = orientation_calc(lats, lons)
+    smoothed_elevation = moving_median(elevations, window_size=10)
+    road_angles = gradient_calculator(lats, lons, elevations, window_size=10)
     
     # Convert lists to numpy arrays
     np_stage_names = np.array(stage_names)
     np_lats = np.array(lats)
     np_lons = np.array(lons)
     np_elevations = np.array(elevations)
-    np_distance = np.array(distance) # Assuming returend data was list
-    np_orientation = np.array(orientation) # Assuming returend data was list
+    np_distance = np.array(distance)
+    np_orientation = np.array(orientation)
+    np_road_angles = np.array(road_angles)
     
     # Zip the individual arrays together 
     # Specify a structured dtype (data type) for each column
     # Need to add distance and orientation after
-    data = np.array(list(zip(np_stage_names, np_lats, np_lons, np_elevations, np_distance, np_orientation)), dtype=[
+    data = np.array(list(zip(np_stage_names, np_lats, np_lons, np_elevations, np_distance, np_orientation, smoothed_elevation, np_road_angles)), dtype=[
             ('stage_name', 'U50'), 
             ('lat', 'f8'), 
             ('lon', 'f8'), 
             ('ele', 'f8'), 
             ('distance', 'f8'),
             ('orientation', 'f8'),
+            ('smoothed_elevation', 'f8'),
+            ('road_angles', 'f8'),
         ])
 
     # To test
-    np.savetxt(output_file, data, fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f", header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation", delimiter=',', comments='')
+    np.savetxt(output_file, data, fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f", header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation, Smoothed Elevation, Road Angle", delimiter=',', comments='')
     
     return data
 
 
-def distance_calc(latitudes, longitudes):
+def distance_calc(lats, lons):
     """
     Calculate cumulative distances of a stage at each point.
     """
     # checking longitude and latitude array lengths
-    if len(latitudes) != len(longitudes):
+    if len(lats) != len(lons):
         raise ValueError("Issue in arrays.")
     
     # initializing cumulative distance array
@@ -86,8 +92,8 @@ def distance_calc(latitudes, longitudes):
     sum_distance = 0
 
     # applying euclidean distances method
-    for i in range(len(longitudes) - 1):
-        current_distance = np.sqrt(((latitudes[i + 1] - latitudes[i])**2) + ((longitudes[i + 1] - longitudes[i])**2))
+    for i in range(len(lons) - 1):
+        current_distance = euclidean_distance(lats[i], lons[i], lats[i+1], lons[i+1])
         sum_distance = sum_distance + current_distance
         distances.append(sum_distance)
 
@@ -188,15 +194,94 @@ def insert_data(txt_filepath):
 
     return None
 
+def euclidean_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculates the Euclidean distance between two points given latitudes and longitudes.
+    """
+    # Approximate radius of the Earth in meters
+    R = 6371000
 
-def gradient_calculator(lats, lons, elevations):
-    '''
-    Calculates the angle of the road and assigns it to each point
-    '''
+    # Convert latitudes and longitudes from degrees to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
 
+    # Convert spherical coordinates to Cartesian coordinates
+    x1 = R * math.cos(lat1) * math.cos(lon1)
+    y1 = R * math.cos(lat1) * math.sin(lon1)
+    z1 = R * math.sin(lat1)
+    x2 = R * math.cos(lat2) * math.cos(lon2)
+    y2 = R * math.cos(lat2) * math.sin(lon2)
+    z2 = R * math.sin(lat2)
+
+    # Calculate differences in Cartesian coordinates
+    delta_x = x2 - x1
+    delta_y = y2 - y1
+    delta_z = z2 - z1
+
+    # Calculate the Euclidean distance
+    distance = math.sqrt(delta_x**2 + delta_y**2 + delta_z**2)
     
+    return distance
+
+def moving_median(data, window_size):
+    """
+    Applies a moving median to the data.
+    Pads the data to handle edge cases and calculates the median for each window.   
+    Outputs an array without the added padding.
+    """
+
+    medians = []
+
+    # half window size is used as our width to ensure that the window is centered.
+    half_window = window_size // 2
+    padded_data = np.pad(data, (half_window, half_window), mode='edge')
     
+    for i in range(half_window, len(padded_data) - half_window):
+        window = padded_data[i - half_window:i + half_window]
+        medians.append(np.median(window))
+
+    return np.array(medians)
 
 
-gpx_parser("gpx_output.txt")
-insert_data("gpx_output.txt")
+def gradient_calculator(lats, lons, elevations, window_size):
+    """
+    Calculates the angle of the road at each point in the route.
+    Applies a moving average to smooth the elvation data.    
+    """
+
+    # Applies moving median function to smooth the elevation data
+    smoothed_elevations = moving_median(elevations, window_size)
+
+    angles = []
+    
+    for i in range(len(lats)):
+        if i == 0:
+            # Calculate the gradient for the first point using the first two points
+            distance = euclidean_distance(lats[i], lons[i], lats[i+1], lons[i+1])
+            elevation_diff = smoothed_elevations[i+1] - smoothed_elevations[i]
+        else:
+            # Calculate the horizontal distance between points
+            distance = euclidean_distance(lats[i-1], lons[i-1], lats[i], lons[i])
+            # Calculate the elevation difference between points
+            elevation_diff = smoothed_elevations[i] - smoothed_elevations[i-1]
+        
+        # Calculate the angle in radians and then convert to degrees
+        angle = math.degrees(math.atan2(elevation_diff, distance))
+        
+        angles.append(angle)
+
+    return angles
+
+
+# Example data
+data = [1, 2, 3, 10, 5, 6, 7, 8, 9, 10]
+
+# Set the window size
+window_size = 10  # Even window size
+
+# Apply moving median
+smoothed_data = moving_median(data, window_size)
+
+# Print the smoothed data
+print("Smoothed Data:", smoothed_data)
+
+gpx_parser()
