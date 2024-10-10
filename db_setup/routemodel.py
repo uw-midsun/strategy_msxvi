@@ -7,7 +7,9 @@ import math
 
 load_dotenv()
 
-def gpx_parser(output_file="output_w3.txt"):
+OUTPUT_FILE = "outputtest.txt"
+
+def gpx_parser(output_file=OUTPUT_FILE):
     """
     Convert gpx files into an array with
     
@@ -17,7 +19,6 @@ def gpx_parser(output_file="output_w3.txt"):
     - elevation (m)
     - distance (km)
     - orientation (deg)
-    - smoothed elevation (m)
     - road angle (deg)
 
     As the respective columns.
@@ -47,8 +48,7 @@ def gpx_parser(output_file="output_w3.txt"):
     # Stores distance and orientation from returned data
     distance = distance_calc(lats, lons)
     orientation = orientation_calc(lats, lons)
-    smoothed_elevation = moving_median(elevations, window_size=10)
-    road_angles = gradient_calculator(lats, lons, elevations, window_size=10)
+    road_angles = gradient_calculator(lats, lons, elevations, window_size=3)
     
     # Convert lists to numpy arrays
     np_stage_names = np.array(stage_names)
@@ -62,19 +62,18 @@ def gpx_parser(output_file="output_w3.txt"):
     # Zip the individual arrays together 
     # Specify a structured dtype (data type) for each column
     # Need to add distance and orientation after
-    data = np.array(list(zip(np_stage_names, np_lats, np_lons, np_elevations, np_distance, np_orientation, smoothed_elevation, np_road_angles)), dtype=[
+    data = np.array(list(zip(np_stage_names, np_lats, np_lons, np_elevations, np_distance, np_orientation, np_road_angles)), dtype=[
             ('stage_name', 'U50'), 
             ('lat', 'f8'), 
             ('lon', 'f8'), 
             ('ele', 'f8'), 
             ('distance', 'f8'),
             ('orientation', 'f8'),
-            ('smoothed_elevation', 'f8'),
             ('road_angles', 'f8'),
         ])
 
     # To test
-    np.savetxt(output_file, data, fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f", header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation, Smoothed Elevation, Road Angle", delimiter=',', comments='')
+    np.savetxt(output_file, data, fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f", header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation, Road Angle", delimiter=',', comments='')
     
     return data
 
@@ -88,12 +87,12 @@ def distance_calc(lats, lons):
         raise ValueError("Issue in arrays.")
     
     # initializing cumulative distance array
-    distances = []
+    distances = [0]
     sum_distance = 0
 
     # applying euclidean distances method
-    for i in range(len(lons) - 1):
-        current_distance = euclidean_distance(lats[i], lons[i], lats[i+1], lons[i+1])
+    for i in range(1, len(lons)):
+        current_distance = euclidean_distance(lats[i-1], lons[i-1], lats[i], lons[i])
         sum_distance = sum_distance + current_distance
         distances.append(sum_distance)
 
@@ -113,17 +112,14 @@ def orientation_calc(lats, lons):
         lat2 = lats[i+1]
         lon2 = lons[i+1]
         
-        # math functions need values in radians
-        rad_x1 = math.radians(lon1)
-        rad_x2 = math.radians(lon2)
-        rad_y1 = math.radians(lat1)
-        rad_y2 = math.radians(lat2)
-        diff_lon = rad_x2 - rad_x1
+        # Convert latitudes and longitudes from degrees to radians
+        lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
         
         # using spherical geometry for this formula
-        distance_y = math.sin(diff_lon) * math.cos(rad_y2)
-        distance_x = math.cos(rad_y1) * math.sin(rad_y2) - \
-            math.sin(rad_y1) * math.cos(rad_y2) * math.cos(diff_lon)
+        diff_lon = lon2 - lon1
+        distance_y = math.sin(diff_lon) * math.cos(lat2)
+        distance_x = math.cos(lat1) * math.sin(lat2) - \
+            math.sin(lat1) * math.cos(lat2) * math.cos(diff_lon)
         angle = math.atan2(distance_y, distance_x)
         # convert angle to bearing in degrees
         bearing = (angle*180/math.pi + 360) % 360
@@ -134,7 +130,7 @@ def orientation_calc(lats, lons):
 
 def init_table():
     """
-    Creates six-column unindexed table for route_model in postgres database.
+    Creates seven-column unindexed table for route_model in postgres database.
     Presumes the postgres database has already been created.
     If table already exists, logs an error and does nothing.
     """
@@ -156,7 +152,8 @@ def init_table():
                 long             FLOAT,
                 elevation        FLOAT,
                 distance         FLOAT,
-                orientation      FLOAT
+                orientation      FLOAT,
+                road_angle       FLOAT
             );
         """)
     except Exception as e:
@@ -168,7 +165,7 @@ def init_table():
     return None
 
 
-def insert_data(txt_filepath):
+def insert_data(output_file=OUTPUT_FILE):
     """
     Insert data into route_model table in postgres database
     """
@@ -183,7 +180,7 @@ def insert_data(txt_filepath):
     cursor = connection.cursor()
 
     try:
-        with open(txt_filepath, 'r') as f:
+        with open(output_file, 'r') as f:
             next(f)  # skip header
             cursor.copy_from(f, 'route_model', sep=',')
     except Exception as e:
@@ -248,40 +245,30 @@ def gradient_calculator(lats, lons, elevations, window_size):
     Applies a moving average to smooth the elvation data.    
     """
 
-    # Applies moving median function to smooth the elevation data
-    smoothed_elevations = moving_median(elevations, window_size)
-
     angles = []
     
-    for i in range(len(lats)):
-        if i == 0:
-            # Calculate the gradient for the first point using the first two points
-            distance = euclidean_distance(lats[i], lons[i], lats[i+1], lons[i+1])
-            elevation_diff = smoothed_elevations[i+1] - smoothed_elevations[i]
-        else:
-            # Calculate the horizontal distance between points
+    for i in range(len(lats)-1):
+        if i == len(lats)-2:
+            # Calculate the horizontal distance using previous point
             distance = euclidean_distance(lats[i-1], lons[i-1], lats[i], lons[i])
-            # Calculate the elevation difference between points
-            elevation_diff = smoothed_elevations[i] - smoothed_elevations[i-1]
-        
-        # Calculate the angle in radians and then convert to degrees
-        angle = math.degrees(math.atan2(elevation_diff, distance))
-        
-        angles.append(angle)
+            # Calculate the elevation difference using previous point
+            elevation_diff = elevations[i] - elevations[i-1]
+            # Calculate the angle in radians and then convert to degrees
+            angle = math.degrees(math.atan2(elevation_diff, distance))
+            angles.append(angle)
 
-    return angles
+        else:
+            # Calculate the horizontal using next point
+            distance = euclidean_distance(lats[i], lons[i], lats[i+1], lons[i+1])
+            # Calculate the elevation difference using next point
+            elevation_diff = elevations[i+1] - elevations[i]
+            # Calculate the angle in radians and then convert to degrees
+            angle = math.degrees(math.atan2(elevation_diff, distance))
+            angles.append(angle)
 
+    smoothed_angles = moving_median(angles, window_size)
 
-# Example data
-data = [1, 2, 3, 10, 5, 6, 7, 8, 9, 10]
-
-# Set the window size
-window_size = 10  # Even window size
-
-# Apply moving median
-smoothed_data = moving_median(data, window_size)
-
-# Print the smoothed data
-print("Smoothed Data:", smoothed_data)
+    return smoothed_angles
 
 gpx_parser()
+insert_data()
