@@ -2,7 +2,7 @@ import numpy as np
 import gpxpy
 import math
 from init import connect_to_db
-
+from dotenv import load_dotenv #delete after
 
 def gpx_parser():
     """
@@ -67,6 +67,7 @@ def gpx_parser():
         comments="",
     )
 
+    print("Data successfully written to output.txt!")
     return data
 
 
@@ -155,6 +156,7 @@ def distance_calc(lats, lons):
         sum_distance += current_distance
         distances.append(sum_distance)
 
+    print("Cumulative distances successfully calculated!")
     return distances
 
 
@@ -178,6 +180,7 @@ def orientation_calc(lats, lons):
 
         orientations.append(bearing)
 
+    print("Orientations successfully calculated!")
     return orientations
 
 
@@ -230,9 +233,8 @@ def gradient_calculator(lats, lons, elevations, window_size):
 
     smoothed_angles = moving_median(angles, window_size)
 
+    print("Road angles successfully calculated!")
     return smoothed_angles
 
 
 gpx_parser()
-init_table()
-insert_data()
