@@ -166,7 +166,7 @@ def orientation_calc(lats, lons):
     Using this formula for bearing:
     https://www.movable-type.co.uk/scripts/latlong.html#:~:text=a%20constant%20bearing!-,Bearing,-In%20general%2C%20your
     """
-    orientations = []
+    orientations = np.zeros(len(lats) - 1)
     for i in range(len(lats) - 1):
         lat1, lon1 = map(math.radians, (lats[i], lons[i]))
         lat2, lon2 = map(math.radians, (lats[i + 1], lons[i + 1]))
@@ -178,7 +178,7 @@ def orientation_calc(lats, lons):
         angle = math.atan2(distance_y, distance_x)
         bearing = (math.degrees(angle) + 360) % 360
 
-        orientations.append(bearing)
+        orientations[i] = bearing
 
     print("Orientations successfully calculated!")
     return orientations
@@ -191,7 +191,7 @@ def moving_median(data, window_size):
     Outputs an array without the added padding.
     """
 
-    medians = []
+    medians = np.zeros(len(data))
 
     # half window size is used as our width to ensure that the window is centered.
     half_window = window_size // 2
@@ -199,9 +199,10 @@ def moving_median(data, window_size):
 
     for i in range(half_window, len(padded_data) - half_window):
         window = padded_data[i - half_window : i + half_window]
-        medians.append(np.median(window))
-
-    return np.array(medians)
+        medians[i - half_window] = np.median(window)
+    
+    print("Moving median successfully calculated!")
+    return medians
 
 
 def gradient_calculator(lats, lons, elevations, window_size):
