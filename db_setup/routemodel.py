@@ -211,7 +211,7 @@ def gradient_calculator(lats, lons, elevations, window_size):
     Applies a moving average to smooth the elvation data.
     """
 
-    angles = []
+    angles = np.zeros(len(lats) - 1)
 
     for i in range(len(lats) - 1):
         if i == len(lats) - 2:
@@ -221,7 +221,7 @@ def gradient_calculator(lats, lons, elevations, window_size):
             elevation_diff = elevations[i] - elevations[i - 1]
             # Calculate the angle in radians and then convert to degrees
             angle = math.degrees(math.atan2(elevation_diff, distance))
-            angles.append(angle)
+            angles[i] = angle
 
         else:
             # Calculate the horizontal using next point
@@ -230,7 +230,7 @@ def gradient_calculator(lats, lons, elevations, window_size):
             elevation_diff = elevations[i + 1] - elevations[i]
             # Calculate the angle in radians and then convert to degrees
             angle = math.degrees(math.atan2(elevation_diff, distance))
-            angles.append(angle)
+            angles[i] = angle
 
     smoothed_angles = moving_median(angles, window_size)
 
