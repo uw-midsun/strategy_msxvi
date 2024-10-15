@@ -2,7 +2,6 @@ import numpy as np
 import gpxpy
 import math
 from init import connect_to_db
-from dotenv import load_dotenv #delete after
 
 def gpx_parser():
     """
@@ -35,39 +34,30 @@ def gpx_parser():
                 elevations.append(points.elevation)
 
     # Calculate distances, orientations, and road angles
-    distances = distance_calc(lats, lons)
-    orientations = orientation_calc(lats, lons)
-    road_angles = gradient_calculator(lats, lons, elevations, window_size=3)
+    distances = distance_calc(lats, lons).tolist()
+    orientations = orientation_calc(lats, lons).tolist()
+    road_angles = gradient_calculator(lats, lons, elevations, window_size=3).tolist()
 
     # Create a structured numpy array for easier handling of the data
     data = np.array(list(zip(
-        np.array(stage_names),
-        np.array(lats),
-        np.array(lons),
-        np.array(elevations),
-        np.array(distances),
-        np.array(orientations),
-        np.array(road_angles)
+        stage_names,
+        lats,
+        lons,
+        elevations,
+        distances,
+        orientations,
+        road_angles
     )), dtype=[
-        ("stage_name", "U50"),
-        ("lat", "f8"),
-        ("lon", "f8"),
-        ("ele", "f8"),
-        ("distance", "f8"),
-        ("orientation", "f8"),
-        ("road_angle", "f8"),
+        ("stage_name", object),
+        ("lat", object),
+        ("lon", object),
+        ("ele", object),
+        ("distance", object),
+        ("orientation", object),
+        ("road_angle", object),
     ])
 
-    np.savetxt(
-        "output.txt",
-        data,
-        fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f",
-        header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation, Road Angle",
-        delimiter=",",
-        comments="",
-    )
-
-    print("Data successfully written to output.txt!")
+    print("Data successfully extracted to structured array")
     return data
 
 
@@ -94,11 +84,14 @@ def init_table():
             );
             """
         )
+        print("Table route_model successfully created")
     except Exception as e:
         print(f"Error: Could not create route_model table: {e}")
     finally:
         cursor.close()
         connection.close()
+    
+    return None
 
 
 def insert_data():
@@ -110,9 +103,12 @@ def insert_data():
     connection.autocommit = True
 
     try:
-        with open("output.txt", "r") as f:
-            next(f)  # skip header
-            cursor.copy_from(f, "route_model", sep=",")
+        insert_query = """
+            INSERT INTO route_model (stage_name, lat, long, elevation, distance, orientation, road_angle)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.executemany(insert_query, gpx_parser())
+        print("Data successfully inserted into route_model table")
     except Exception as e:
         print(
             f"Error: Could not insert data into route_model table in postgres database: {e}"
@@ -156,7 +152,7 @@ def distance_calc(lats, lons):
         sum_distance += current_distance
         distances[i] = sum_distance
 
-    print("Cumulative distances successfully calculated!")
+    print("Cumulative distances successfully calculated")
     return distances
 
 
@@ -180,7 +176,7 @@ def orientation_calc(lats, lons):
 
         orientations[i] = bearing
 
-    print("Orientations successfully calculated!")
+    print("Orientations successfully calculated")
     return orientations
 
 
@@ -201,7 +197,7 @@ def moving_median(data, window_size):
         window = padded_data[i - half_window : i + half_window]
         medians[i - half_window] = np.median(window)
     
-    print("Moving median successfully calculated!")
+    print("Moving median successfully calculated")
     return medians
 
 
@@ -234,8 +230,8 @@ def gradient_calculator(lats, lons, elevations, window_size):
 
     smoothed_angles = moving_median(angles, window_size)
 
-    print("Road angles successfully calculated!")
+    print("Road angles successfully calculated")
     return smoothed_angles
 
 
-gpx_parser()
+insert_data()
