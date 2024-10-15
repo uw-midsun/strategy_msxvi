@@ -148,13 +148,13 @@ def distance_calc(lats, lons):
     if len(lats) != len(lons):
         raise ValueError("Latitude and longitude arrays must be the same length.")
 
-    distances = [0]
+    distances = np.zeros(len(lats))
     sum_distance = 0
 
     for i in range(1, len(lons)):
         current_distance = euclidean_distance(lats[i - 1], lons[i - 1], lats[i], lons[i])
         sum_distance += current_distance
-        distances.append(sum_distance)
+        distances[i] = sum_distance
 
     print("Cumulative distances successfully calculated!")
     return distances
