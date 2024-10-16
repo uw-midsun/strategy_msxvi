@@ -3,7 +3,6 @@ import gpxpy
 import math
 from init import connect_to_db
 
-
 def gpx_parser():
     """
     Parse GPX files to extract essential route data and save it to a structured array.
@@ -35,38 +34,30 @@ def gpx_parser():
                 elevations.append(points.elevation)
 
     # Calculate distances, orientations, and road angles
-    distances = distance_calc(lats, lons)
-    orientations = orientation_calc(lats, lons)
-    road_angles = gradient_calculator(lats, lons, elevations, window_size=3)
+    distances = distance_calc(lats, lons).tolist()
+    orientations = orientation_calc(lats, lons).tolist()
+    road_angles = gradient_calculator(lats, lons, elevations, window_size=3).tolist()
 
     # Create a structured numpy array for easier handling of the data
     data = np.array(list(zip(
-        np.array(stage_names),
-        np.array(lats),
-        np.array(lons),
-        np.array(elevations),
-        np.array(distances),
-        np.array(orientations),
-        np.array(road_angles)
+        stage_names,
+        lats,
+        lons,
+        elevations,
+        distances,
+        orientations,
+        road_angles
     )), dtype=[
-        ("stage_name", "U50"),
-        ("lat", "f8"),
-        ("lon", "f8"),
-        ("ele", "f8"),
-        ("distance", "f8"),
-        ("orientation", "f8"),
-        ("road_angle", "f8"),
+        ("stage_name", object),
+        ("lat", object),
+        ("lon", object),
+        ("ele", object),
+        ("distance", object),
+        ("orientation", object),
+        ("road_angle", object),
     ])
 
-    np.savetxt(
-        "output.txt",
-        data,
-        fmt="%s,%.8f,%.8f,%.8f,%.8f,%.8f,%.8f",
-        header="Stage Name, Latitude, Longitude, Elevation, Distance, Orientation, Road Angle",
-        delimiter=",",
-        comments="",
-    )
-
+    print("Data successfully extracted to structured array")
     return data
 
 
@@ -93,11 +84,14 @@ def init_table():
             );
             """
         )
+        print("Table route_model successfully created")
     except Exception as e:
         print(f"Error: Could not create route_model table: {e}")
     finally:
         cursor.close()
         connection.close()
+    
+    return None
 
 
 def insert_data():
@@ -109,9 +103,12 @@ def insert_data():
     connection.autocommit = True
 
     try:
-        with open("output.txt", "r") as f:
-            next(f)  # skip header
-            cursor.copy_from(f, "route_model", sep=",")
+        insert_query = """
+            INSERT INTO route_model (stage_name, lat, long, elevation, distance, orientation, road_angle)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.executemany(insert_query, gpx_parser())
+        print("Data successfully inserted into route_model table")
     except Exception as e:
         print(
             f"Error: Could not insert data into route_model table in postgres database: {e}"
@@ -147,14 +144,15 @@ def distance_calc(lats, lons):
     if len(lats) != len(lons):
         raise ValueError("Latitude and longitude arrays must be the same length.")
 
-    distances = [0]
+    distances = np.zeros(len(lats))
     sum_distance = 0
 
     for i in range(1, len(lons)):
         current_distance = euclidean_distance(lats[i - 1], lons[i - 1], lats[i], lons[i])
         sum_distance += current_distance
-        distances.append(sum_distance)
+        distances[i] = sum_distance
 
+    print("Cumulative distances successfully calculated")
     return distances
 
 
@@ -164,7 +162,7 @@ def orientation_calc(lats, lons):
     Using this formula for bearing:
     https://www.movable-type.co.uk/scripts/latlong.html#:~:text=a%20constant%20bearing!-,Bearing,-In%20general%2C%20your
     """
-    orientations = []
+    orientations = np.zeros(len(lats) - 1)
     for i in range(len(lats) - 1):
         lat1, lon1 = map(math.radians, (lats[i], lons[i]))
         lat2, lon2 = map(math.radians, (lats[i + 1], lons[i + 1]))
@@ -176,8 +174,9 @@ def orientation_calc(lats, lons):
         angle = math.atan2(distance_y, distance_x)
         bearing = (math.degrees(angle) + 360) % 360
 
-        orientations.append(bearing)
+        orientations[i] = bearing
 
+    print("Orientations successfully calculated")
     return orientations
 
 
@@ -188,7 +187,7 @@ def moving_median(data, window_size):
     Outputs an array without the added padding.
     """
 
-    medians = []
+    medians = np.zeros(len(data))
 
     # half window size is used as our width to ensure that the window is centered.
     half_window = window_size // 2
@@ -196,9 +195,10 @@ def moving_median(data, window_size):
 
     for i in range(half_window, len(padded_data) - half_window):
         window = padded_data[i - half_window : i + half_window]
-        medians.append(np.median(window))
-
-    return np.array(medians)
+        medians[i - half_window] = np.median(window)
+    
+    print("Moving median successfully calculated")
+    return medians
 
 
 def gradient_calculator(lats, lons, elevations, window_size):
@@ -207,7 +207,7 @@ def gradient_calculator(lats, lons, elevations, window_size):
     Applies a moving average to smooth the elvation data.
     """
 
-    angles = []
+    angles = np.zeros(len(lats) - 1)
 
     for i in range(len(lats) - 1):
         if i == len(lats) - 2:
@@ -217,7 +217,7 @@ def gradient_calculator(lats, lons, elevations, window_size):
             elevation_diff = elevations[i] - elevations[i - 1]
             # Calculate the angle in radians and then convert to degrees
             angle = math.degrees(math.atan2(elevation_diff, distance))
-            angles.append(angle)
+            angles[i] = angle
 
         else:
             # Calculate the horizontal using next point
@@ -226,13 +226,12 @@ def gradient_calculator(lats, lons, elevations, window_size):
             elevation_diff = elevations[i + 1] - elevations[i]
             # Calculate the angle in radians and then convert to degrees
             angle = math.degrees(math.atan2(elevation_diff, distance))
-            angles.append(angle)
+            angles[i] = angle
 
     smoothed_angles = moving_median(angles, window_size)
 
+    print("Road angles successfully calculated")
     return smoothed_angles
 
-
-gpx_parser()
 init_table()
 insert_data()
