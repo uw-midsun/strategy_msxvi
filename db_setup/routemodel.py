@@ -233,5 +233,6 @@ def gradient_calculator(lats, lons, elevations, window_size):
     print("Road angles successfully calculated")
     return smoothed_angles
 
-init_table()
-insert_data()
+if __name__ == "__main__":
+    init_table()
+    insert_data()
