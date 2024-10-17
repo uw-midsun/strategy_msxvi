@@ -1,6 +1,7 @@
 import pandas as pd
 from db_setup.init import connect_to_db
 
+
 def fetch_data(query):
     connection = connect_to_db()
     cursor = connection.cursor()
@@ -19,18 +20,15 @@ def fetch_data(query):
 
 
 def load_data_to_memory():
-    connection = connect_to_db()
-
     route_model_query = "SELECT * FROM route_model;"
     irradiance_query = "SELECT * FROM irradiance;"
 
     route_model_df = fetch_data(route_model_query)
     irradiance_df = fetch_data(irradiance_query)
 
-    connection.close()
-
     print("Data successfully loaded to memory")
     return route_model_df, irradiance_df
+
 
 if __name__ == "__main__":
     route_model_df, irradiance_df = load_data_to_memory()
