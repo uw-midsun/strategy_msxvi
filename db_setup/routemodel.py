@@ -5,6 +5,7 @@ import numpy as np # Import for numpy array
 import gpxpy # Import to allow easier parsing of gpx file
 import math
 
+
 load_dotenv()
 
 def gpx_parser(output_file="output.txt"):
