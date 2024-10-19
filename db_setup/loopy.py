@@ -136,4 +136,5 @@ def orientation_calc(lats, lons):
     print("Orientations successfully calculated")
     return orientations
 
-gpx_loop_parser("gpx_output.txt")
+data = gpx_loop_parser("gpx_output.txt")
+print(data)
