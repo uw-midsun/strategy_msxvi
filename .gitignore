@@ -1,3 +1,6 @@
 .env
 db_setup/__pycache__/
-output.txt
+output*.txt
+extrafunctions.py
+.gitignore
+pd_vs_np.py
