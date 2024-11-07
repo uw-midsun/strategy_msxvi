@@ -1,0 +1,1 @@
+from db.setup.routemodel import main as routemodel_setup

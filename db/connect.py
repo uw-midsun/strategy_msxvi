@@ -32,3 +32,8 @@ def connect_to_db():
     except Exception as e:
         print(f"An error occurred: {e}")
         return None  # Return None if the connection fails
+    
+    
+if __name__ == "__main__":
+    create_db()
+    connect_to_db()

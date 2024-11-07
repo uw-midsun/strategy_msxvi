@@ -1,7 +1,8 @@
 import numpy as np
 import gpxpy
 import math
-from init import connect_to_db
+from db.connect import connect_to_db
+
 
 def gpx_parser():
     """
@@ -21,7 +22,7 @@ def gpx_parser():
     data, stage_names, lats, lons, elevations = [], [], [], [], []
 
     # Load and parse the GPX file
-    with open("db_setup/gpx_asc24/0_FullBaseRoute.gpx", "r") as gpx_file:
+    with open("data/asc_24/0_FullBaseRoute.gpx", "r") as gpx_file:
         gpx = gpxpy.parse(gpx_file)
 
     # Extract data from the GPX structure
@@ -233,6 +234,11 @@ def gradient_calculator(lats, lons, elevations, window_size):
     print("Road angles successfully calculated")
     return smoothed_angles
 
-if __name__ == "__main__":
+
+def main():
     init_table()
     insert_data()
+    
+
+if __name__ == "__main__":
+    main()

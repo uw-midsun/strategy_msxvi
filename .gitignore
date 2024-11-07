@@ -1,6 +1,3 @@
 .env
-db_setup/__pycache__/
-output*.txt
-extrafunctions.py
+__pycache__/
 .gitignore
-pd_vs_np.py
