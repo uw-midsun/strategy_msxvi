@@ -14,7 +14,7 @@ Successfully achieving these objectives hinges on two critical factors: designin
 
 ### **What speed should one drive at?**
 
-To address this question, the code below leverages comprehensive data inputs including route models, elevation profiles, weather conditions, and solar irradiance data. This integrated approach allows for predicting the performance of the solar car across various velocities.
+To address this question, our code leverages comprehensive data inputs including route models, elevation profiles, weather conditions, and solar irradiance data. This integrated approach allows for predicting the performance of the solar car across various velocities.
 
 At the core of the analysis is a solver that computes the instantaneous power draw and supply from multiple sources, including:
 
@@ -29,7 +29,7 @@ These factors are computed dynamically over time and distance to simulate and op
 
 The database is comprised of two tables: the route model and a solar irradiance table. The database is intended to be stored locally and synced with a cloud version based on availability of internet. The cloud database is regularly updated with the latest route model and solar irradiance data. This design enables the local solver to run offline with high performance and reliability. 
 
-![architecture.png](attachment:architecture.png)
+![Architecture Diagram](docs/architecture.png)
 
 **The cell below syncs the local database with the cloud database.**
 
@@ -57,6 +57,6 @@ The following cells provide distances of each stage, elevation profiles, and irr
 
 ## Solver
 
-Run the following cell to simulate the car at varying velocities. The solver can simulate up to 8 hours ahead. It does not include an error minimization function. This is intentional due to limited real-world feedback from telemetry and diagnostics. Therefore, it is more important for the solver's behavior to be predictable rather than accurate.
+Run *solver.py* to simulate the car at varying velocities. The solver can simulate up to 8 hours ahead. It does not include an error minimization function. This is intentional due to limited real-world feedback from telemetry and diagnostics. Therefore, it is more important for the solver's behavior to be predictable rather than accurate.
 
 **Re-run the simulation as frequently as possible using real-time distance values to keep errors in check.**
