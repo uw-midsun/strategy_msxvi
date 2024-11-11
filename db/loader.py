@@ -1,5 +1,5 @@
 import pandas as pd
-from db_setup.init import connect_to_db
+from db.connect import connect_to_db
 
 
 def fetch_data(query):
