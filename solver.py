@@ -3,6 +3,7 @@ from db import load_data_to_memory
 from tqdm import tqdm
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
+from numpy import random
 
 ## Setup
 STAGE_SYMBOL = "1B"
@@ -26,8 +27,19 @@ bat_capacity = 40 * 3.63 * 36  # pack capacity (Wh)
 disc = 32  # discretization
 inter = 900  # time intervals
 
+def random_velocities_gen(size=disc):
+    """ 
+    Generates a velocity array with normal distribution
+    """
+    velocity_array = np.random.normal(loc=16, scale=4, size=(1, size))
+
+    # Round the values and clip them to be within the range [0, 32]
+    velocity_array = np.clip(np.round(velocity_array), 0, 32).astype(int)
+    return velocity_array[0]
+
 # Initialize arrays
-velocities = np.arange(1, 1 + disc)
+velocities = random_velocities_gen()
+print(velocities)
 times = np.arange(1, inter * disc, inter)
 solar_power_values = np.zeros((disc, disc))
 rolling_resistance_values = np.zeros((disc, disc))
