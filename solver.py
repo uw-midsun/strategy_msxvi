@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 STAGE_SYMBOL = "1B"
 current_d = 0 # current distance along stage (m)
 start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) # simulation start time DEFINED IN UTC.
-
 stage_d = 256000 # total distance of the stage (m)
 
 # Constants
@@ -22,6 +21,22 @@ p = 1.293  # air density (kg/m^3)
 n = 0.16  # efficiency of solar panel (%)
 A_solar = 4.0  # area of solar panel (m^2)
 bat_capacity = 40 * 3.63 * 36  # pack capacity (Wh)
+
+# Simulation parameters
+disc = 32  # discretization
+inter = 900  # time intervals
+
+# Initialize arrays
+velocities = np.arange(1, 1 + disc)
+times = np.arange(1, inter * disc, inter)
+solar_power_values = np.zeros((disc, disc))
+rolling_resistance_values = np.zeros((disc, disc))
+drag_resistance_values = np.zeros((disc, disc))
+gradient_resistance_values = np.zeros((disc, disc))
+capacity_values = np.full((disc, disc), bat_capacity)
+
+# Load data into memory
+route_model_df, irradiance_df = load_data_to_memory()
 
 # Function for pulling the closest row in the route model dataframe given the distance and stage name
 def map_distance_to_id(route_model_df, stage_name, distance):
@@ -59,6 +74,28 @@ def map_distance_to_irradiance(
     )
     return result_df
 
+def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
+    """ 
+    Simulate solar irradiance using a parabolic curve.
+    
+    Parameters:
+        time_seconds (int): The elapsed time in seconds (0 to day_duration).
+        day_duration (int): The total duration of the simulated day (default is 8 hours)
+        peak_irradiance (float): The maximum irradiance value (default is 1000 W/m²).
+    
+    Returns:
+        float: Simulated irradiance value (W/m²).
+    """
+    # Normalize the time to the range [0, 1]
+    normalized_time = time_seconds / day_duration
+
+    # Parabolic curve formula: y = -4 * (x - 0.5)² + 1
+    # This creates a peak at x = 0.5 (midday) and 0 at the start and end of the day.
+    irradiance = peak_irradiance * (-4 * (normalized_time - 0.5)**2 + 1)
+
+    # Ensure the irradiance is non-negative
+    return max(irradiance, 0)
+
 # Power (In/Out)
 def rolling_resistance(v):
     """Calculate power drawn due to rolling resistance."""
@@ -76,22 +113,6 @@ def solar_power(G):
     """Calculate power available from solar irradiance."""
     return A_solar * G * n
 
-# Simulation parameters
-disc = 32  # discretization
-inter = 900  # time intervals
-
-# Initialize arrays
-velocities = np.arange(1, 1 + disc)
-times = np.arange(1, inter * disc, inter)
-solar_power_values = np.zeros((disc, disc))
-rolling_resistance_values = np.zeros((disc, disc))
-drag_resistance_values = np.zeros((disc, disc))
-gradient_resistance_values = np.zeros((disc, disc))
-capacity_values = np.full((disc, disc), bat_capacity)
-
-# Load data into memory
-route_model_df, irradiance_df = load_data_to_memory()
-
 # Progress bar
 pbar = tqdm(total=disc ** 2, desc="Simulating", unit="step")
 
@@ -100,14 +121,16 @@ for i, v in enumerate(velocities):
     for j, t in enumerate(times):
         try:
             d = current_d + v * t
-            #v_wind = map_distance_to_irradiance(irradiance_df, base_route_df, STAGE_SYMBOL, d, t, start_time=start_time)['wind_speed_10m'].values[0] * np.cos(
-            #    np.deg2rad(map_distance_to_id(base_route_df, STAGE_SYMBOL, d)['car_bearing'].values[0] - map_distance_to_irradiance(irradiance_df, base_route_df, STAGE_SYMBOL, d, t, start_time=start_time)['wind_direction_10m'].values[0]))
+            # v_wind = map_distance_to_irradiance(irradiance_df, route_model_df, STAGE_SYMBOL, d, t, start_time=start_time)['wind_speed_10m'].values[0] * np.cos(
+                # np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['car_bearing'].values[0] - map_distance_to_irradiance(irradiance_df, route_model_df, STAGE_SYMBOL, d, t, start_time=start_time)['wind_direction_10m'].values[0]))
 
             #v_adj = v_wind + v
             theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])
             #irradiance = map_distance_to_irradiance(irradiance_df, base_route_df, STAGE_SYMBOL, d, t, start_time=start_time)['gti'].values[0]
-
-            #solar_power_values[i, j] = solar_power(irradiance)
+            
+            elapsed_time = j * inter  # Elapsed time in seconds
+            irradiance = mock_irradiance(elapsed_time)
+            solar_power_values[i, j] = solar_power(irradiance)
             rolling_resistance_values[i, j] = rolling_resistance(v)
             drag_resistance_values[i, j] = drag_resistance(v) #should be v_adj: change when irradiance available
             gradient_resistance_values[i, j] = gradient_resistance(v, theta)
@@ -129,45 +152,47 @@ for j in range(1, disc):
 
 print(f"8hr simulation for Stage {STAGE_SYMBOL} from {current_d/1000} km @ {start_time} COMPLETE.")
 
-# Plot the capacity & distance matrix
-plt.figure(figsize=(18, 18)) 
-plt.title('Capacity (Wh) & Distance (km) Matrix')
-plt.xlabel('Time (hours)')
-plt.ylabel('Velocity (m/s)')
-plt.imshow(capacity_values, cmap='magma', vmin=-10000, vmax=26000)
-ax = plt.gca()
+# Function to plot the capacity & distance matrix
+def plot_capacity_matrix():
+    plt.figure(figsize=(18, 18)) 
+    plt.title('Capacity (Wh) & Distance (km) Matrix')
+    plt.xlabel('Time (hours)')
+    plt.ylabel('Velocity (m/s)')
+    plt.imshow(capacity_values, cmap='magma', vmin=-10000, vmax=26000)
+    ax = plt.gca()
 
-# Progress bar
-pbar = tqdm(total=disc**2, desc="Plotting", unit="step")
+    # Progress bar
+    pbar = tqdm(total=disc**2, desc="Plotting", unit="step")
 
-for (i, j), val in np.ndenumerate(capacity_values):
-    d = (current_d + i * j * inter) / 1000
-    if d > stage_d / 1000 and val > 0:
-        rect = plt.Rectangle((j - 0.5, i - 0.5), 1, 1, color='green', alpha=0.8)
-        ax.add_patch(rect)
-    if val < 0:
-        rect = plt.Rectangle((j - 0.5, i - 0.5), 1, 1, color='black', alpha=1)
-        ax.add_patch(rect)
-    plt.text(j, i, f'{val:.1f}', ha='center', va='bottom', color='white', fontsize=6)
-    plt.text(j, i, f'{d:.1f}', ha='center', va='top', color='black', fontsize=6)
-    pbar.update(1)
+    for (i, j), val in np.ndenumerate(capacity_values):
+        d = (current_d + i * j * inter) / 1000
+        if d > stage_d / 1000 and val > 0:
+            rect = plt.Rectangle((j - 0.5, i - 0.5), 1, 1, color='green', alpha=0.8)
+            ax.add_patch(rect)
+        if val < 0:
+            rect = plt.Rectangle((j - 0.5, i - 0.5), 1, 1, color='black', alpha=1)
+            ax.add_patch(rect)
+        plt.text(j, i, f'{val:.1f}', ha='center', va='bottom', color='white', fontsize=6)
+        plt.text(j, i, f'{d:.1f}', ha='center', va='top', color='black', fontsize=6)
+        pbar.update(1)
 
-pbar.close()
+    pbar.close()
 
-plt.xticks(ticks=np.arange(0, capacity_values.shape[1]), labels=[f'{i / 4}' for i in range(capacity_values.shape[1])])
-plt.text(0, -2.5, 'Black text: Distance (km)', color='black', fontsize=10)
-plt.text(0, -2, 'White text: Capacity (Wh)', color='black', fontsize=10)
-plt.gca().invert_yaxis()
+    plt.xticks(ticks=np.arange(0, capacity_values.shape[1]), labels=[f'{i / 4}' for i in range(capacity_values.shape[1])])
+    plt.text(0, -2.5, 'Black text: Distance (km)', color='black', fontsize=10)
+    plt.text(0, -2, 'White text: Capacity (Wh)', color='black', fontsize=10)
+    plt.gca().invert_yaxis()
 
-# Adding legend
-legend_patches = [
-    plt.Rectangle((0, 0), 1, 1, color='green', alpha=0.8, label='Target Operation'),
-    plt.Rectangle((0, 0), 1, 1, color='black', alpha=1, label='Dead Battery')
-]
-plt.legend(handles=legend_patches, loc='upper right', fontsize=10)
+    # Adding legend
+    legend_patches = [
+        plt.Rectangle((0, 0), 1, 1, color='green', alpha=0.8, label='Target Operation'),
+        plt.Rectangle((0, 0), 1, 1, color='black', alpha=1, label='Dead Battery')
+    ]
+    plt.legend(handles=legend_patches, loc='upper right', fontsize=10)
 
-plt.show(block=False)
+    plt.show(block=True)
 
+# Function to plot power profiles
 def plot_power_profiles(velocity, plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True):
     fig, ax1 = plt.subplots(figsize=(24, 16))
     
@@ -208,9 +233,10 @@ def plot_power_profiles(velocity, plot_solar=True, plot_rolling=True, plot_drag=
     ax1.legend()
     ax1.grid(True)
     
-    plt.show(block=False)
+    plt.show(block=True)
 
 #User Input
+plot_capacity_matrix()
 velocity = 10
 plot_power_profiles(velocity, plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True) # Toggle plots
 
@@ -218,7 +244,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_capacity(velocity, overlay_data, overlay_dist):
-
     scale_fac = velocity*inter/1000
     overlay_dist = overlay_dist.astype(float)
     overlay_dist -= current_d/1000
@@ -261,4 +286,4 @@ def plot_capacity(velocity, overlay_data, overlay_dist):
 velocity = 12
 overlay_data = np.array([4000, 4962, 4000, 3700, 200, 2000, 4000])  # real capacity data (Wh)
 overlay_dist = np.array([110, 120, 150, 170, 220, 223, 236.80])  # corresponding distance (km)
-plot_capacity(velocity, overlay_data, overlay_dist)
+# plot_capacity(velocity, overlay_data, overlay_dist)
