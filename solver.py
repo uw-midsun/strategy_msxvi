@@ -5,50 +5,50 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from numpy import random
 
+# Load data into memory
+route_model_df, irradiance_df = load_data_to_memory()
+
 ## Setup
 STAGE_SYMBOL = "1B"
 current_d = 0 # current distance along stage (m)
 start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) # simulation start time DEFINED IN UTC.
-stage_d = 256000 # total distance of the stage (m)
+
+# Determines stage distance (km) dynamically
+stage_df = route_model_df[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')][['stage_name', 'distance']]
+stage_df['distance_km'] = stage_df['distance'] / 1000
+stage_d = stage_df['distance_km'].max()
+print(f'Stage {STAGE_SYMBOL} total distance: {stage_d:.2f} km')
 
 # Constants
-m = 300.0  # mass of the vehicle (kg)
-g = 9.81  # acceleration due to gravity (m/s^2)
-C_r1 = 0.004  # rolling resistance coefficient 1
-C_r2 = 0.052  # rolling resistance coefficient 2
-C_d = 0.13  # drag coefficient
-A_drag = 1.357  # cross-sectional area (m^2)
-p = 1.293  # air density (kg/m^3)
-n = 0.16  # efficiency of solar panel (%)
-A_solar = 4.0  # area of solar panel (m^2)
-bat_capacity = 40 * 3.63 * 36  # pack capacity (Wh)
+m = 300.0  # Mass of vehicle (kg)
+g = 9.81  # Acceleration due to gravity (m/s^2)
+C_r1 = 0.004  # Rolling resistance coefficient 1
+C_r2 = 0.052  # Rolling resistance coefficient 2
+C_d = 0.13  # Drag coefficient
+A_drag = 1.357  # Cross-sectional area (m^2)
+p = 1.293  # Air density (kg/m^3)
+n = 0.16  # Efficiency of solar panel (%)
+A_solar = 4.0  # Area of solar panel (m^2)
+bat_capacity = 40 * 3.63 * 36  # Pack capacity (Wh)
 
 # Simulation parameters
-disc = 32  # discretization
-inter = 900  # time intervals
-
-def random_velocities_gen(size=disc):
-    """ 
-    Generates a velocity array with normal distribution
-    """
-    velocity_array = np.random.normal(loc=16, scale=4, size=(1, size))
-
-    # Round the values and clip them to be within the range [0, 32]
-    velocity_array = np.clip(np.round(velocity_array), 0, 32).astype(int)
-    return velocity_array[0]
+disc = 32  # Discretization
+inter = 900  # Time interval (s)
 
 # Initialize arrays
-velocities = random_velocities_gen()
-print(velocities)
+velocities = [ # Velocity array of size 31
+    10, 10, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24,
+    25, 27, 32, 32, 32, 32, 32, 32, 32, 32, 24,
+    24, 25, 15, 15, 15, 15, 15, 15
+]
+velocities = np.array(velocities)
+print(f'velocites: {velocities}')
 times = np.arange(1, inter * disc, inter)
 solar_power_values = np.zeros((disc, disc))
 rolling_resistance_values = np.zeros((disc, disc))
 drag_resistance_values = np.zeros((disc, disc))
 gradient_resistance_values = np.zeros((disc, disc))
 capacity_values = np.full((disc, disc), bat_capacity)
-
-# Load data into memory
-route_model_df, irradiance_df = load_data_to_memory()
 
 # Function for pulling the closest row in the route model dataframe given the distance and stage name
 def map_distance_to_id(route_model_df, stage_name, distance):
@@ -165,6 +165,7 @@ for j in range(1, disc):
 print(f"8hr simulation for Stage {STAGE_SYMBOL} from {current_d/1000} km @ {start_time} COMPLETE.")
 
 # Function to plot the capacity & distance matrix
+""" A heat map here would not make sense if there is a custom velocity array """
 def plot_capacity_matrix():
     plt.figure(figsize=(18, 18)) 
     plt.title('Capacity (Wh) & Distance (km) Matrix')
@@ -204,56 +205,76 @@ def plot_capacity_matrix():
 
     plt.show(block=True)
 
-# Function to plot power profiles
-def plot_power_profiles(velocity, plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True):
+# Function to plot power profile with varying velocities
+def plot_power_profiles(plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True):
     fig, ax1 = plt.subplots(figsize=(24, 16))
-    
+
+    # Calculate cumulative distance using the actual velocities array
+    cumulative_distance = np.cumsum(velocities * inter) / 1000  # Convert to kilometers
+    cumulative_distance = np.insert(cumulative_distance, 0, 0)
+
+    # Plot the power profiles
     if plot_solar:
-        ax1.plot(solar_power_values[velocity, :], label='Solar Power (W)')
+        ax1.plot(solar_power_values.mean(axis=0), label='Solar Power (W)')
     if plot_rolling:
-        ax1.plot(rolling_resistance_values[velocity, :], label='Rolling Resistance (W)')
+        ax1.plot(rolling_resistance_values.mean(axis=0), label='Rolling Resistance (W)')
     if plot_drag:
-        ax1.plot(drag_resistance_values[velocity, :], label='Drag Resistance (W)')
+        ax1.plot(drag_resistance_values.mean(axis=0), label='Drag Resistance (W)')
     if plot_gradient:
-        ax1.plot(gradient_resistance_values[velocity, :], label='Gradient Resistance (W)')
+        ax1.plot(gradient_resistance_values.mean(axis=0), label='Gradient Resistance (W)')
     if plot_consumed:
-        ax1.plot(energy_consumed[velocity, :], label='Battery Power (W)')
-    
+        ax1.plot(energy_consumed.mean(axis=0), label='Battery Power (W)')
+
     ax1.set_xlabel('Time (Hours)')
     ax1.set_ylabel('Power (Watts)')
-    ax1.set_title(f'Instantaneous Power Draw at {velocity} m/s')
-    ax1.set_xticks(np.arange(0, capacity_values.shape[1]))
-    ax1.set_xticklabels([f'{i/4}' for i in range(capacity_values.shape[1])])
+    ax1.set_title('Instantaneous Power Draw with Varying Velocities')
+    ax1.set_xticks(np.arange(0, len(times)))
+    ax1.set_xticklabels([f'{i / 4}' for i in range(len(times))])
 
+    # Create the secondary x-axis for distance
     ax2 = ax1.twiny()
     ax2.set_xlabel('Distance (km)')
-    ax2.set_xticks(np.arange(0, capacity_values.shape[1]))
-    ax2.set_xticklabels([f'{(current_d+velocity*inter*i)/1000:.2f}' for i in range(capacity_values.shape[1])])
-    
-    x_values = np.arange(0, capacity_values.shape[1])
-    threshold_index = np.argmax((current_d + velocity * inter * x_values) / 1000 >= stage_d/1000)  
-    ax1.axvline(x=x_values[threshold_index], color='grey', linestyle='--', linewidth=2, label='Stage Completion Distance')
-    ax1.legend(loc='upper right') 
 
+    # Set distance ticks based on actual cumulative distance values
+    distance_ticks = np.linspace(0, len(cumulative_distance) - 1, num=33, dtype=int)
+    ax2.set_xticks(distance_ticks)
+    ax2.set_xticklabels([f'{cumulative_distance[i]:.1f}' for i in distance_ticks])
+
+    # Mark the stage completion distance
+    completion_mark = np.argmax(cumulative_distance >= stage_d)
+    if completion_mark < len(cumulative_distance):
+        ax1.axvline(x=completion_mark, color='grey', linestyle='--', linewidth=2, label='Stage Completion Distance')
+
+# Velocity Heatmap Overlay
+    norm_velocities = (velocities - min(velocities)) / (max(velocities) - min(velocities))  # Normalize velocities to [0, 1]
+    cmap = plt.get_cmap('magma')
+
+    # Overlay the heatmap with increased transparency (alpha)
+    for i in range(len(norm_velocities)):
+        ax1.axvspan(i, i + 1, color=cmap(norm_velocities[i]), alpha=0.3)
+
+    # Add a color bar for the velocity heatmap
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=min(velocities), vmax=max(velocities)))
+    sm.set_array([])  # Only needed for the color bar
+    cbar = plt.colorbar(sm, ax=ax1, alpha=0.3, orientation='vertical', pad=0.02)
+    cbar.set_label('Velocity (m/s)', fontsize=12)
+    
     ax1.set_xlim(ax2.get_xlim())
     ax1.xaxis.set_ticks_position('bottom')
     ax1.xaxis.set_label_position('bottom')
     ax2.xaxis.set_ticks_position('bottom')
     ax2.xaxis.set_label_position('bottom')
-    ax2.spines['bottom'].set_position(('outward', 40))  
+    ax2.spines['bottom'].set_position(('outward', 40))
 
-    ax1.legend()
+    ax1.legend(loc='upper right')
     ax1.grid(True)
-    
+
     plt.show(block=True)
 
-#User Input
-plot_capacity_matrix()
-velocity = 10
-plot_power_profiles(velocity, plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True) # Toggle plots
 
-import matplotlib.pyplot as plt
-import numpy as np
+#User Input
+# plot_capacity_matrix()
+plot_power_profiles(plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True) # Toggle plots
 
 def plot_capacity(velocity, overlay_data, overlay_dist):
     scale_fac = velocity*inter/1000
