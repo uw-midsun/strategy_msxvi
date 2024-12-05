@@ -1,7 +1,11 @@
 import numpy as np
 import gpxpy
 import math
-from db.connect import connect_to_db
+
+# need to import connect_to_db from db/connect.py
+import sys
+sys.path.append("db")
+from connect import connect_to_db
 
 
 def gpx_parser():
@@ -101,14 +105,19 @@ def insert_data():
     """
     connection = connect_to_db()
     cursor = connection.cursor()
-    connection.autocommit = True
 
     try:
-        insert_query = """
-            INSERT INTO route_model (stage_name, lat, long, elevation, distance, orientation, road_angle)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        cursor.executemany(insert_query, gpx_parser())
+        print(f"Clearing existing data from route_model table...")
+        cursor.execute(f"DELETE FROM route_model")
+
+        print(f"Inserting data into route_model table... (this may take a while)")
+
+        args_str = ",".join("('%s', '%s', '%s', '%s', '%s', '%s', '%s')"
+                            % (stage_name, lat, long, elevation, distance, orientation, road_angle)
+                            for (stage_name, lat, long, elevation, distance, orientation, road_angle) in gpx_parser())
+        cursor.execute("INSERT INTO route_model VALUES" + args_str)
+        connection.commit()
+
         print("Data successfully inserted into route_model table")
     except Exception as e:
         print(
