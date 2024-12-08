@@ -87,17 +87,7 @@ def map_distance_to_irradiance(
     return result_df
 
 def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
-    """ 
-    Simulate solar irradiance using a parabolic curve.
-    
-    Parameters:
-        time_seconds (int): The elapsed time in seconds (0 to day_duration).
-        day_duration (int): The total duration of the simulated day (default is 8 hours)
-        peak_irradiance (float): The maximum irradiance value (default is 1000 W/m²).
-    
-    Returns:
-        float: Simulated irradiance value (W/m²).
-    """
+    """Simulate solar irradiance using a parabolic curve."""
     # Normalize the time to the range [0, 1]
     normalized_time = time_seconds / day_duration
 
