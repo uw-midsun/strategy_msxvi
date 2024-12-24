@@ -1,20 +1,20 @@
 # MSXVI - FSGP & ASC '25 - Strategy
 ## About
-FSGP serves as a qualifying event for ASC. The objectives of FSGP are the following:
+FSGP serves as a qualifying event for ASC. 
 
-"Scoring is based on the highest overall official distance driven or laps completed over the duration of the event with ties being broken by the lowest overall official elapsed time or fastest lap" in other words maximising distance for a fixed time. 
+    Scoring is based on the highest overall official distance driven or laps completed over the duration of the event with ties being broken by the lowest overall official elapsed time or fastest lap" in other words maximising distance for a fixed time. 
 
-The objectives of ASC are the following:
+If qualified, the objectives of ASC are the following:
 
-1. To complete the American Solar Challenge base route without trailering.
-2. To complete as many official miles as possible. (1st Tiebreaker)
-3. To complete the distance in the shortest elapsed time. (2nd Tiebreaker)
+    1. To complete the American Solar Challenge base route without trailering.
+    2. To complete as many official miles as possible. (1st Tiebreaker)
+    3. To complete the distance in the shortest elapsed time. (2nd Tiebreaker)
 
-Successfully achieving these objectives hinges on two critical factors: designing an efficient solar car and following a good race strategy. Race strategy boils down to a single question:
+Successfully achieving these objectives hinges on two factors: designing an efficient solar car and following a good race strategy. Race strategy boils down to a single question:
 
 ### **What speed should one drive at?**
 
-To address this question, our code leverages comprehensive data inputs including route models, elevation profiles, weather conditions, and solar irradiance data. This integrated approach allows for predicting the performance of the solar car across various velocities.
+To address this question, our code leverages comprehensive data inputs including the route model, elevation profile, weather condition, and solar irradiance data. 
 
 At the core of the analysis is a solver that computes the instantaneous power draw and supply from multiple sources, including:
 
@@ -36,8 +36,6 @@ The database is comprised of two tables: the route model and a solar irradiance 
 *Pre-requisite: Wi-fi*
 
 Additionally, for increased performance, the local database is then stored in memory as a [pandas DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html).
-
-**This cell is a pre-requisite for all the following cells.**
 
 ## Route Overview
 

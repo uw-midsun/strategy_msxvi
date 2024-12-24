@@ -5,20 +5,6 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 from numpy import random
 
-# Load data into memory
-route_model_df, irradiance_df = load_data_to_memory()
-
-## Setup
-STAGE_SYMBOL = "1B"
-current_d = 0 # current distance along stage (m)
-start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) # simulation start time DEFINED IN UTC.
-
-# Determines stage distance (km) dynamically
-stage_df = route_model_df[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')][['stage_name', 'distance']]
-stage_df['distance_km'] = stage_df['distance'] / 1000
-stage_d = stage_df['distance_km'].max()
-print(f'Stage {STAGE_SYMBOL} total distance: {stage_d:.2f} km')
-
 # Constants
 m = 300.0  # Mass of vehicle (kg)
 g = 9.81  # Acceleration due to gravity (m/s^2)
@@ -33,22 +19,26 @@ bat_capacity = 40 * 3.63 * 36  # Pack capacity (Wh)
 
 # Simulation parameters
 disc = 32  # Discretization
-inter = 900  # Time interval (s)
+inter = 900  # Time interval(s)
+STAGE_SYMBOL = "1B"
+current_d = 0 # current distance along stage (m)
+start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) # simulation start time DEFINED IN UTC.
 
 # Initialize arrays
-velocities = [ # Velocity array of size 31
+velocities = np.array([
     10, 10, 10, 24, 24, 24, 24, 24, 24, 24, 24, 24,
     25, 27, 32, 32, 32, 32, 32, 32, 32, 32, 24,
     24, 25, 15, 15, 15, 15, 15, 15
-]
-velocities = np.array(velocities)
-print(f'velocites: {velocities}')
+])
 times = np.arange(1, inter * disc, inter)
 solar_power_values = np.zeros((disc, disc))
 rolling_resistance_values = np.zeros((disc, disc))
 drag_resistance_values = np.zeros((disc, disc))
 gradient_resistance_values = np.zeros((disc, disc))
 capacity_values = np.full((disc, disc), bat_capacity)
+
+# Load data into memory
+route_model_df, irradiance_df = load_data_to_memory()
 
 # Function for pulling the closest row in the route model dataframe given the distance and stage name
 def map_distance_to_id(route_model_df, stage_name, distance):
@@ -86,18 +76,6 @@ def map_distance_to_irradiance(
     )
     return result_df
 
-def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
-    """Simulate solar irradiance using a parabolic curve."""
-    # Normalize the time to the range [0, 1]
-    normalized_time = time_seconds / day_duration
-
-    # Parabolic curve formula: y = -4 * (x - 0.5)² + 1
-    # This creates a peak at x = 0.5 (midday) and 0 at the start and end of the day.
-    irradiance = peak_irradiance * (-4 * (normalized_time - 0.5)**2 + 1)
-
-    # Ensure the irradiance is non-negative
-    return max(irradiance, 0)
-
 # Power (In/Out)
 def rolling_resistance(v):
     """Calculate power drawn due to rolling resistance."""
@@ -111,6 +89,13 @@ def gradient_resistance(v, theta):
     """Calculate power drawn due to gradients."""
     return m * g * np.sin(theta) * v
 
+def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
+    """Simulate solar irradiance using a parabolic curve: y = -4 * (x - 0.5)² + 1
+    This creates a peak at x = 0.5 (midday) and 0 at the start and end of the day."""
+    normalized_time = time_seconds / day_duration
+    irradiance = peak_irradiance * (-4 * (normalized_time - 0.5)**2 + 1)
+    return max(irradiance, 0)
+
 def solar_power(G):
     """Calculate power available from solar irradiance."""
     return A_solar * G * n
@@ -123,27 +108,22 @@ for i, v in enumerate(velocities):
     for j, t in enumerate(times):
         try:
             d = current_d + v * t
-            # v_wind = map_distance_to_irradiance(irradiance_df, route_model_df, STAGE_SYMBOL, d, t, start_time=start_time)['wind_speed_10m'].values[0] * np.cos(
-                # np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['car_bearing'].values[0] - map_distance_to_irradiance(irradiance_df, route_model_df, STAGE_SYMBOL, d, t, start_time=start_time)['wind_direction_10m'].values[0]))
-
-            #v_adj = v_wind + v
-            theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])
-            #irradiance = map_distance_to_irradiance(irradiance_df, base_route_df, STAGE_SYMBOL, d, t, start_time=start_time)['gti'].values[0]
-            
-            elapsed_time = j * inter  # Elapsed time in seconds
-            irradiance = mock_irradiance(elapsed_time)
+            theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])            
+            irradiance = mock_irradiance(t)
             solar_power_values[i, j] = solar_power(irradiance)
             rolling_resistance_values[i, j] = rolling_resistance(v)
-            drag_resistance_values[i, j] = drag_resistance(v) #should be v_adj: change when irradiance available
+            drag_resistance_values[i, j] = drag_resistance(v)
             gradient_resistance_values[i, j] = gradient_resistance(v, theta)
-
         except IndexError:
             print("INDEX ERROR")
             exit
-
         pbar.update(1)
-
 pbar.close()
+
+print(f"8hr simulation for Stage {STAGE_SYMBOL} from {current_d/1000} km @ {start_time} COMPLETE.")
+
+
+
 
 # Calculate energy consumed
 energy_consumed = - solar_power_values + rolling_resistance_values + drag_resistance_values + gradient_resistance_values
@@ -152,13 +132,12 @@ energy_consumed = - solar_power_values + rolling_resistance_values + drag_resist
 for j in range(1, disc):
     capacity_values[:, j] = capacity_values[:, j - 1] - energy_consumed[:, j - 1]
 
-print(f"8hr simulation for Stage {STAGE_SYMBOL} from {current_d/1000} km @ {start_time} COMPLETE.")
 
-# Function to plot power profile with varying velocities
+
+
 def plot_power_profiles(plot_solar=True, plot_rolling=True, plot_drag=True, plot_gradient=True, plot_consumed=True):
     """
     Visualizes the instantaneous power draw of the vehicle across various power components while accounting for varying velocities. 
-    
     It integrates multiple power profiles, including solar power, rolling resistance, drag resistance, gradient resistance, and battery consumption.
     """
     

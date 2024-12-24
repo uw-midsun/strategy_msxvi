@@ -5,6 +5,12 @@ route_model_df, irradiance_df = load_data_to_memory() # Load data from the datab
 
 STAGE_SYMBOL = '1B' # Change this to the stage you want to analyze
 
+# Determines stage distance (km) dynamically
+def stage_distance():
+    stage_df = route_model_df[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')][['stage_name', 'distance']]
+    stage_df['distance_km'] = stage_df['distance'] / 1000
+    stage_d = stage_df['distance_km'].max()
+    print(f'Stage {STAGE_SYMBOL} total distance: {stage_d:.2f} km')
 
 #Filter the route model data to get the specified stage data
 stage_df = route_model_df[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')][['stage_name', 'elevation', 'distance']]
