@@ -1,9 +1,8 @@
 import numpy as np
-from db import load_data_to_memory
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-from numpy import random
+from db import load_data_to_memory
 
 # Constants
 m = 300.0  # Mass of vehicle (kg)
@@ -22,7 +21,7 @@ disc = 32  # Discretization
 inter = 900  # Time interval(s)
 STAGE_SYMBOL = "1B"
 current_d = 0 # current distance along stage (m)
-start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) # simulation start time DEFINED IN UTC.
+start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) #DEFINED IN UTC.
 
 # Initialize arrays
 velocities = np.array([
