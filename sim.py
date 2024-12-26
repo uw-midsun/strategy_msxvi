@@ -16,11 +16,16 @@ n = 0.16  # Efficiency of solar panel (%)
 A_solar = 4.0  # Area of solar panel (m^2)
 bat_capacity = 40 * 3.63 * 36  # Pack capacity (Wh)
 
+# Load data into memory
+route_model_df, irradiance_df = load_data_to_memory()
+
 # Simulation parameters
 disc = 32  # Discretization
-inter = 900  # Time interval(s)
+inter = 1  # Time interval(s)
 STAGE_SYMBOL = "1B"
 current_d = 0 # current distance along stage (m)
+stage_df = route_model_df[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')][['stage_name', 'distance']]
+stage_d = stage_df['distance'].max() / 1000
 start_time = datetime(year=2024, month=10, day=25, hour=5, minute=3) #DEFINED IN UTC.
 
 # Initialize arrays
@@ -36,17 +41,15 @@ drag_resistance_values = np.zeros((disc, disc))
 gradient_resistance_values = np.zeros((disc, disc))
 capacity_values = np.full((disc, disc), bat_capacity)
 
-# Load data into memory
-route_model_df, irradiance_df = load_data_to_memory()
 
-# Function for pulling the closest row in the route model dataframe given the distance and stage name
+#etl
 def map_distance_to_id(route_model_df, stage_name, distance):
+    """Function for pulling the closest row in the route model dataframe given the distance and stage name"""
     stage_df = route_model_df[route_model_df["stage_name"].str.contains(stage_name, na=False)].copy()
     stage_df["stage_distance"] = stage_df["distance"] - stage_df["distance"].min()
     closest_row = stage_df.iloc[(stage_df['stage_distance'] - distance).abs().argmin()]
     return closest_row
 
-# Needs refactoring. Same as map_distance_to_id but for irradiance data
 def map_distance_to_irradiance(
     irradiance_df,
     base_route_df,
@@ -55,6 +58,7 @@ def map_distance_to_irradiance(
     time,
     start_time=None,
 ):
+    """Function for pulling the closest row in the route model dataframe given the distance and stage name"""
     df = base_route_df[base_route_df["symbol"] == route_symbol].copy()
     df["distance_difference"] = abs(df["stage_elapsed_distance"] - distance)
     stage_id, route_start_time = df.nsmallest(1, "distance_difference")[
@@ -89,8 +93,7 @@ def gradient_resistance(v, theta):
     return m * g * np.sin(theta) * v
 
 def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
-    """Simulate solar irradiance using a parabolic curve: y = -4 * (x - 0.5)² + 1
-    This creates a peak at x = 0.5 (midday) and 0 at the start and end of the day."""
+    """Simulate solar irradiance: y = -4 * (x - 0.5)² + 1"""
     normalized_time = time_seconds / day_duration
     irradiance = peak_irradiance * (-4 * (normalized_time - 0.5)**2 + 1)
     return max(irradiance, 0)
@@ -119,17 +122,15 @@ for i, v in enumerate(velocities):
         pbar.update(1)
 pbar.close()
 
-print(f"8hr simulation for Stage {STAGE_SYMBOL} from {current_d/1000} km @ {start_time} COMPLETE.")
-
-
-
-
 # Calculate energy consumed
 energy_consumed = - solar_power_values + rolling_resistance_values + drag_resistance_values + gradient_resistance_values
 
 # Calculate battery capacity over time
 for j in range(1, disc):
     capacity_values[:, j] = capacity_values[:, j - 1] - energy_consumed[:, j - 1]
+
+print(f"8hr simulation for Stage {STAGE_SYMBOL} from {current_d/1000} km @ {start_time} COMPLETE.")
+
 
 
 

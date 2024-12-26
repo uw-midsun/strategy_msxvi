@@ -40,10 +40,8 @@ Run 'overview.py' to get distance, elevation profile, and irradiance data for a 
 
 ## Database
 
-The database is comprised of two tables: the route model and a solar irradiance table. The database is intended to be stored locally and synced with a cloud version based on availability of internet. The cloud database is regularly updated with the latest route model and solar irradiance data. This design enables the local solver to run offline with high performance and reliability. 
+The database is comprised of two tables: the route model and a solar irradiance table. The database can run offline locally and can be synced with a cloud version based on the availability of wifi. 
 
 ![Architecture Diagram](docs/architecture.PNG)
 
-**The cell below syncs the local database with the cloud database if there's wifi.**
 
-Additionally, for increased performance, the local database is then stored in memory as a [pandas DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html).

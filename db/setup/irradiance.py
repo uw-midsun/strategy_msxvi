@@ -1,4 +1,4 @@
-from db_setup.init import connect_to_db
+from db.connect import connect_to_db
 
 
 def get_irradiance(lat, long, API_KEY):
