@@ -13,14 +13,7 @@ N = 0.16  # Efficiency of solar panel (%)
 A_SOLAR = 4.0  # Area of solar panel (m^2)
 BAT_CAPACITY = 40 * 3.63 * 36  # Pack capacity (Wh)
 
-# Simulation parameters
-DISC = 3600  # Discretization (number of time steps)
-INTER = 8  # Time interval(s)
-STAGE_SYMBOL = "1B"
-STAGE_D = 256e3  # Total stage distance (m)
-CURRENT_D = 0e3 # Starting distance (m)
-
-# ETL & utils
+# ETL & Utils
 route_model_df, irradiance_df = load_data_to_memory()
 
 def map_distance_to_id(route_model_df, stage_name, distance):
@@ -46,7 +39,20 @@ def solar_power(G):
     return A_SOLAR * G * N
 
 # Simulation
-def sim(velocities):
+def sim(velocities, DISC, INTER, STAGE_SYMBOL, CURRENT_D):
+    """
+    Simulate a stage and return the final capacity for a given velocity profile.
+    
+    Parameters:
+    - velocities (np.array): Velocity profile over time steps.
+    - DISC (int): Number of time steps (discretization).
+    - INTER (int): Time interval in seconds.
+    - STAGE_SYMBOL (str): Symbol representing the stage (e.g., "1B").
+    - CURRENT_D (float): Starting distance along the stage in meters.
+    
+    Returns:
+    - final_capacity (float): The negative of the final battery capacity.
+    """
     solar_power_values = np.zeros(DISC)
     rolling_resistance_values = np.zeros(DISC)
     drag_resistance_values = np.zeros(DISC)
@@ -55,8 +61,7 @@ def sim(velocities):
     times = np.arange(1, INTER * DISC, INTER)
     for i, v in enumerate(velocities):
         try:
-            d = CURRENT_D
-            d += + v * times[i]
+            d = CURRENT_D + v * times[i]
             theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])
             irradiance = mock_irradiance(times[i])
             solar_power_values[i] = solar_power(irradiance)
