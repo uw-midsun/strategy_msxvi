@@ -25,18 +25,20 @@ We address this question by leveraging the route, weather, and solar irradiance 
 
 ## Simulator
 
-Run *sim.py* to simulate the car.
-
-sim.py consists of a solver which computes the instantaneous power draw and supply from multiple sources over the course of a stage:
+*sim.py* consists of a solver which computes the instantaneous power draw and supply from multiple sources over the course of a stage:
 
 - **Drag Resistance**: based on vehicle aerodynamics, wind and velocity.
 - **Rolling Resistance**: determined by the surface conditions of the road, mass of the car, and velocity.
 - **Gradient Resistance**: determined by slope of the road and velocity.
 - **Solar Irradiance**: determined by solar irradiance, vehicle orientation, array efficiency, and velocity.
 
+## Optimizer
+
+*optimizer.py* is intented to optimize the velocity profile for a given objective returned by *sim.py*
+
 ## Route Overview
 
-Run 'overview.py' to get distance, elevation profile, and irradiance data for a given stage.
+Run *overview.py* to get distance, elevation profile, and irradiance data for a given stage.
 
 ## Database
 
