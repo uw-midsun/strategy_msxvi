@@ -82,7 +82,8 @@ def sync_databases(cloud_db_config, local_db_config, table_name):
         local_cursor.execute(f"DELETE FROM {table_name}")
 
         if cloud_data:
-            print(f"Inserting data into local database table '{table_name}'...")
+            print(f"Inserting data into local database table '{table_name}'... (this may take a while)")
+
             columns = cloud_data[0].keys()
             column_names = ", ".join(columns)
             column_placeholders = ", ".join(["%s"] * len(columns))
@@ -109,11 +110,11 @@ def sync_databases(cloud_db_config, local_db_config, table_name):
 
 def main(table_name):
     cloud_db_config = {
-        "host": os.getenv("HOST"),
+        "host": os.getenv("DB_HOST"),
         "database": os.getenv("DB_NAME"),
         "user": os.getenv("DB_USER"),
         "password": os.getenv("DB_PASSWORD"),
-        "port": 5432,
+        "port": os.getenv("DB_PORT"),
     }
 
     local_db_config = {
@@ -121,11 +122,12 @@ def main(table_name):
         "database": os.getenv("LOCAL_DB_NAME"),
         "user": os.getenv("LOCAL_DB_USER"),
         "password": os.getenv("LOCAL_DB_PASSWORD"),
-        "port": 5432,
+        "port": os.getenv("LOCAL_DB_PORT"),
     }
 
     sync_databases(cloud_db_config, local_db_config, table_name)
 
 
 if __name__ == "__main__":
+    main("route_model")
     main("irradiance")
