@@ -1,9 +1,5 @@
+from db.connect import connect_to_db
 import os
-
-# need to import connect_to_db from db/connect.py
-import sys
-sys.path.append("db")
-from connect import connect_to_db
 
 
 def get_irradiance(lat, long, API_KEY):

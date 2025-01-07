@@ -1,4 +1,6 @@
 .env
 __pycache__/
 .gitignore
+test.ipynb
 logfile
+
