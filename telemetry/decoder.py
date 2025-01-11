@@ -11,7 +11,6 @@ class State:
     EOM = "EOM"
     VALID = "VALID"
 
-
 class DatagramDecoder:
     def __init__(self):
         self.message_state = State.SOM
@@ -37,14 +36,13 @@ class DatagramDecoder:
         if self.parse_byte(recv):
             message = self.db.get_message_by_frame_id(self.datagram["id"])
             decoded_data = message.decode(self.datagram['data'])
-            print(decoded_data)
-            #upload decoded_data using PostgreSQL
+            return decoded_data
 
     def read_test(self, byte):
         if self.parse_byte(byte):
             message = self.db.get_message_by_frame_id(self.datagram["id"])
             decoded_data = message.decode(bytes(self.datagram['data']))
-            print(decoded_data)
+            return decoded_data
 
     def is_valid_id(self, id):
         try:
