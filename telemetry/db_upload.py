@@ -12,7 +12,18 @@ bucket = "bucket"
 client = InfluxDBClient(url=url, token=token, org=org)
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
-'''
+class DBUpload:
+    def upload(self, buffer):
+        point = Point("telemetry")
+        for data in buffer:
+            for key, value in data.items():
+                point = point.field(key, value)
+
+            write_api.write(bucket=bucket, org=org, record=point)
+            print(data)
+            time.sleep(1)
+
+        '''
 Telemetry Data:
 - battery_status
     - fault
@@ -77,18 +88,3 @@ Telemetry Data:
     - bps_persist
     - bps_persist_val
 '''
-
-while True:
-    #example:
-
-
-    # Create data point
-    point = Point("telemetry") \
-        .field("key", value) \
-        .field("key", value) \
-        .time(time.time_ns())
-
-    write_api.write(bucket=bucket, org=org, record=point)
-
-    print(f"Data written: temperature={temperature}, current={current}")
-    time.sleep(1)
