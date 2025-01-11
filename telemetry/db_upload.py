@@ -18,10 +18,9 @@ class DBUpload:
         for data in buffer:
             for key, value in data.items():
                 point = point.field(key, value)
-
-            write_api.write(bucket=bucket, org=org, record=point)
-            print(data)
-            time.sleep(1)
+        write_api.write(bucket=bucket, org=org, record=point)
+        print(data)
+        time.sleep(1)
 
         '''
 Telemetry Data:
