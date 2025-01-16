@@ -1,5 +1,4 @@
 from db.connect import connect_to_db
-import os
 
 
 def get_irradiance(lat, long, API_KEY):
@@ -81,10 +80,10 @@ def insert_data(csv_filepath):
     cursor = connection.cursor()
 
     try:
-        print(f"Clearing existing data from irradiance table...")
-        cursor.execute(f"DELETE FROM irradiance")
+        print("Clearing existing data from irradiance table...")
+        cursor.execute("DELETE FROM irradiance")
 
-        print(f"Inserting data into irradiance table... (this may take a while)")
+        print("Inserting data into irradiance table... (this may take a while)")
 
         with open(csv_filepath, 'r') as f:
             next(f)  # skip header
