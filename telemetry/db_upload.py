@@ -22,16 +22,17 @@ class DBUpload:
         print(data)
         time.sleep(1)
 
-'''
-pedal freq every 20ms
-everything else 200ms
 
+
+'''
 assume every 200ms
+(pedal freq every 20ms
+everything else 200ms)
 
 Set baud rate to 115200b/s
 
 Telemetry Data (total = 80 bytes, 640 bits):
-- battery_status (7 bytes)
+- battery_status (7 bytes)  bms-carrier/inc/bms.h
     - fault
     - fault value
     - aux_battery_v
@@ -59,6 +60,8 @@ Telemetry Data (total = 80 bytes, 640 bits):
     - v1
     - v2
     - v3
+(Each AFE will send data 4 times (id: 0-3). Each id does 3 cells to make up the voltage of cell 1-12.
+the temp will be for 4 cells so temp of id 0-2 are valid temperatures, the id 3 will be a garbage value)
 - cc_info (8 bytes)
     - target velocity
     - drive state
@@ -81,12 +84,12 @@ Telemetry Data (total = 80 bytes, 640 bits):
     - velocity_r
     - brakes_enabled
 - mc_status (7 bytes)
-    - limit_bitset_l
-    - error_bitset_l
-    - limit_bitset_r
-    - error_bitset_r
-    - board_fault_bitset
-    - overtemp_bitset
+    - limit_bitset_l no
+    - error_bitset_l no
+    - limit_bitset_r no
+    - error_bitset_r no
+    - board_fault_bitset no
+    - overtemp_bitset no
     - precharge_status
 - pd_status (6 bytes)
     - power_state
