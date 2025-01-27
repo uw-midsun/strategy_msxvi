@@ -64,7 +64,7 @@ class DatagramDecoder:
         AFE_message = {"id": msg_id, AFE_temp_name: raw_AFE_decoded_data["temp"], AFE_v1_name: raw_AFE_decoded_data["v1"], AFE_v2_name: raw_AFE_decoded_data["v2"], AFE_v3_name: raw_AFE_decoded_data["v3"]}
         return AFE_message    
     
-    def convert_fault(self, fault_bitset):
+    def convert_bms_fault(self, fault_bitset):
         fault_msg = {"BMS_FAULT_OVERVOLTAGE": 0,
             "BMS_FAULT_UNBALANCE": 0, 
             "BMS_FAULT_OVERTEMP_AMBIENT": 0,
@@ -88,7 +88,7 @@ class DatagramDecoder:
             if message.name in self.AFE_MSGS:
                 decoded_data = self.convert_AFE_msg(message, decoded_data)
             if message.name == "battery_status":
-                decoded_data = self.convert_fault(decoded_data["fault"])
+                decoded_data = self.convert_bms_fault(decoded_data["fault"])
             if message.name == "pd_status":
                 pass
             return decoded_data
