@@ -31,9 +31,9 @@ everything else 200ms)
 
 Set baud rate to 115200b/s
 
-Telemetry Data (total = 80 bytes, 640 bits):
+Telemetry Data (total = 74 bytes, 592 bits):
 - battery_status (7 bytes)  bms-carrier/inc/bms.h
-    - fault
+    - fault (Bitset)
     - fault value
     - aux_battery_v
     - afe_status
@@ -93,7 +93,7 @@ the temp will be for 4 cells so temp of id 0-2 are valid temperatures, the id 3 
     - precharge_status
 - pd_status (6 bytes)
     - power_state
-    - fault_bitset
+    - fault_bitset (Bitset)
     - bps_persist
     - bps_persist_val
 '''
