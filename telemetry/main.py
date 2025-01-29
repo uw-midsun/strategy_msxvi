@@ -1,9 +1,18 @@
+import threading
+
 from decoder import DatagramDecoder
-from db_upload import Upload
+from db_upload import DBUpload
 
 decoder = DatagramDecoder()
-db = Upload()
+db = DBUpload
+
+buffer = []
+BUFFER_UPLOAD_SIZE = 50
 
 while True:
-    decoder.read()
-    db.upload()
+    data = decoder.read()
+    if data:
+        buffer.append(data)
+        if len(buffer) >= BUFFER_UPLOAD_SIZE:
+            db.upload(buffer)
+
