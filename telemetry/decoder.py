@@ -23,7 +23,7 @@ class DatagramDecoder:
     def init_serial(self):
         self.master, self.slave = pty.openpty()
         self.slave_name = os.ttyname(self.slave)
-        self.slave_serial = serial.Serial(self.slave_name)
+        self.slave_serial = serial.Serial(self.slave_name) #args?
 
     def init_dbc(self):
         dbc_path = "system_can.dbc"
