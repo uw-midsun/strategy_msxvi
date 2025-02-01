@@ -14,24 +14,26 @@ class DBUpload:
                     id SERIAL PRIMARY KEY,
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     message_name VARCHAR(50),
-                    value INTEGER 
+                    value FLOAT 
                 );
             """)
             self.connection.commit()
         except Exception as e:
             print(f"Error creating table: {e}")
 
+    def insert_data_point(self, key, value):
+        self.cursor.execute("""
+            INSERT INTO telemetry (message_name, value)
+            VALUES (%s, %s)
+        """, (key, float(value)))
+
     def upload(self, buffer):
         try:
             for data in buffer:
                 for key, value in data.items():
-                    self.cursor.execute("""
-                        INSERT INTO telemetry (message_name, value)
-                        VALUES (%s, %s)
-                    """, (key, int(value)))
+                    self.insert_data_point(key, value)
             self.connection.commit()
             print("Data uploaded successfully")
-            time.sleep(1)
         except Exception as e:
             print(f"Error uploading data: {e}")
             self.connection.rollback()
