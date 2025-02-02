@@ -12,19 +12,47 @@ class State:
 class DatagramDecoder:
     def __init__(self, serial_port="/dev/tty.usbmodem1101", baud_rate=115200, timeout=1, dbc_path="system_can.dbc"):
         #REPLACE serial_port WITH YOUR COMPUTER's SERIAL PORT
-        self.ser = self._init_serial(serial_port, baud_rate, timeout)
-        self.db = self._init_dbc(dbc_path)
+        self.ser = self.init_serial(serial_port, baud_rate, timeout)
+        self.db = self.init_dbc(dbc_path)
         self.message_state = State.SOM
         self.buffer = []
         self.datagram = None
 
-    def _init_serial(self, port, baud_rate, timeout):
+    def init_serial(self, port, baud_rate, timeout):
         ser = serial.Serial(port, baud_rate, timeout=timeout)
         print(f"Serial port {port} opened successfully.")
         return ser
 
-    def _init_dbc(self, dbc_path):
+    def init_dbc(self, dbc_path):
         return cantools.database.load_file(dbc_path)
+    
+    def convert_AFE_msg(self, message, raw_AFE_decoded_data):
+        msg_id = raw_AFE_decoded_data["id"]
+        AFE_num = message.name[0:4]
+        AFE_temp_name = AFE_num+"temp"+str(msg_id)
+        AFE_v1_name = AFE_num+"v"+str(1+(3*msg_id))
+        AFE_v2_name = AFE_num+"v"+str(2+(3*msg_id))
+        AFE_v3_name = AFE_num+"v"+str(3+(3*msg_id))
+        AFE_message = {"id": msg_id, AFE_temp_name: raw_AFE_decoded_data["temp"], AFE_v1_name: raw_AFE_decoded_data["v1"], AFE_v2_name: raw_AFE_decoded_data["v2"], AFE_v3_name: raw_AFE_decoded_data["v3"]}
+        return AFE_message    
+
+    def convert_bms_fault(self, fault_bitset):
+        fault_msg = {"BMS_FAULT_OVERVOLTAGE": 0,
+            "BMS_FAULT_UNBALANCE": 0, 
+            "BMS_FAULT_OVERTEMP_AMBIENT": 0,
+            "BMS_FAULT_COMMS_LOSS_AFE": 0,
+            "BMS_FAULT_COMMS_LOSS_CURR_SENSE": 0,
+            "BMS_FAULT_OVERTEMP_CELL": 0,
+            "BMS_FAULT_OVERCURRENT": 0,
+            "BMS_FAULT_UNDERVOLTAGE": 0,
+            "BMS_FAULT_KILLSWITCH": 0,
+            "BMS_FAULT_RELAY_CLOSE_FAILED": 0,
+            "BMS_FAULT_DISCONNECTED": 0}
+        for i in range(len(self.BMS_FAULTS)):
+            if fault_bitset & (1 << i):
+                fault_msg[self.BMS_FAULTS[i]] = 1
+        return fault_msg
+
 
     def read(self):
         while self.ser.in_waiting > 0:
@@ -34,6 +62,18 @@ class DatagramDecoder:
                 return self.decode_datagram()
         
         return None
+    
+    def read_test(self, byte):
+        if self.parse_byte(byte):
+            message = self.db.get_message_by_frame_id(self.datagram['id'])
+            decoded_data = message.decode(bytes(self.datagram['data']))
+            if message.name in self.AFE_MSGS:
+                decoded_data = self.convert_AFE_msg(message, decoded_data)
+            if message.name == "battery_status":
+                decoded_data = self.convert_bms_fault(decoded_data["fault"])
+            if message.name == "pd_status":
+                pass
+            return decoded_data
 
     def decode_datagram(self):
         
