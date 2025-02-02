@@ -36,7 +36,7 @@ class DatagramDecoder:
         return None
 
     def decode_datagram(self):
-        """Decode the parsed datagram using the DBC file."""
+        
         if not self.datagram:
             return None
 
@@ -49,7 +49,6 @@ class DatagramDecoder:
         return self._format_decoded_message(message, decoded_data)
 
     def _format_decoded_message(self, message, decoded_data):
-        """Formats decoded message into a dictionary."""
         formatted_data = {"message": message.name, "id": self.datagram["id"], "data": {}}
 
         for signal_name, value in decoded_data.items():
@@ -63,10 +62,10 @@ class DatagramDecoder:
     def _reset_buffer(self):
         self.buffer = []
         self.datagram = None
-        self.message_state = State.SOM  # Ensure it resets to the beginning
+        self.message_state = State.SOM  
 
     def parse_byte(self, byte):
-        """Parses incoming bytes and extracts CAN messages based on state."""
+
         if self.message_state in [State.SOM, State.VALID]:
             self._reset_buffer()
             if byte == 0xAA:
@@ -81,15 +80,15 @@ class DatagramDecoder:
                     self.buffer = []
                     self.message_state = State.DLC
                 else:
-                    self.message_state = State.SOM  # Reset if ID is invalid
+                    self.message_state = State.SOM  
 
         elif self.message_state == State.DLC:
             self.datagram["dlc"] = byte
-            if self.datagram["dlc"] <= 8:  # Max standard CAN payload size
+            if self.datagram["dlc"] <= 8:  
                 self.datagram["data"] = []
                 self.message_state = State.DATA
             else:
-                self.message_state = State.SOM  # Invalid DLC, reset
+                self.message_state = State.SOM  
 
         elif self.message_state == State.DATA:
             self.buffer.append(byte)
@@ -101,6 +100,6 @@ class DatagramDecoder:
             if byte == 0xBB:
                 self.message_state = State.VALID
             else:
-                self.message_state = State.SOM  # Reset if incorrect end byte
+                self.message_state = State.SOM  
 
         return self.message_state == State.VALID
