@@ -1,28 +1,42 @@
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
 import time
-import random
-
-# Configuration
-url = "http://localhost:8086"
-token = "token"
-org = "org"
-bucket = "bucket"
-
-client = InfluxDBClient(url=url, token=token, org=org)
-write_api = client.write_api(write_options=SYNCHRONOUS)
+from db.connect import connect_to_db
 
 class DBUpload:
+    def __init__(self):
+        self.connection = connect_to_db()
+        self.cursor = self.connection.cursor()
+        self.init_table()
+
+    def init_table(self):
+        try:
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS telemetry (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    message_name VARCHAR(50),
+                    value FLOAT 
+                );
+            """)
+            self.connection.commit()
+        except Exception as e:
+            print(f"Error creating table: {e}")
+
+    def insert_data_point(self, key, value):
+        self.cursor.execute("""
+            INSERT INTO telemetry (message_name, value)
+            VALUES (%s, %s)
+        """, (key, float(value)))
+
     def upload(self, buffer):
-        point = Point("telemetry")
-        for data in buffer:
-            for key, value in data.items():
-                point = point.field(key, value)
-        write_api.write(bucket=bucket, org=org, record=point)
-        print(data)
-        time.sleep(1)
-
-
+        try:
+            for data in buffer:
+                for key, value in data.items():
+                    self.insert_data_point(key, value)
+            self.connection.commit()
+            print("Data uploaded successfully")
+        except Exception as e:
+            print(f"Error uploading data: {e}")
+            self.connection.rollback()
 
 '''
 assume every 200ms
