@@ -18,6 +18,22 @@ class DatagramDecoder:
         self.buffer = []
         self.datagram = None
 
+        self.AFE_MSGS = ["AFE1_status", "AFE2_status", "AFE3_status"]
+
+        self.BMS_FAULTS = [
+            "BMS_FAULT_OVERVOLTAGE",
+            "BMS_FAULT_UNBALANCE", 
+            "BMS_FAULT_OVERTEMP_AMBIENT",
+            "BMS_FAULT_COMMS_LOSS_AFE",
+            "BMS_FAULT_COMMS_LOSS_CURR_SENSE",
+            "BMS_FAULT_OVERTEMP_CELL",
+            "BMS_FAULT_OVERCURRENT",
+            "BMS_FAULT_UNDERVOLTAGE",
+            "BMS_FAULT_KILLSWITCH",
+            "BMS_FAULT_RELAY_CLOSE_FAILED",
+            "BMS_FAULT_DISCONNECTED"
+        ]
+
     def init_serial(self, port, baud_rate, timeout):
         ser = serial.Serial(port, baud_rate, timeout=timeout)
         print(f"Serial port {port} opened successfully.")
