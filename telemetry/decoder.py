@@ -140,7 +140,7 @@ class DatagramDecoder:
 
         elif self.message_state == State.DLC:
             self.datagram["dlc"] = byte
-            if self.datagram["dlc"] <= 8:  
+            if self.datagram["dlc"] <= 9:  
                 self.datagram["data"] = []
                 self.message_state = State.DATA
             else:
