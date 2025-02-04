@@ -13,7 +13,7 @@ class DatagramDecoder:
     def __init__(self, serial_port="/dev/tty.usbmodem1101", baud_rate=115200, timeout=1, dbc_path="system_can.dbc"):
         #REPLACE serial_port WITH YOUR COMPUTER's SERIAL PORT
         self.ser = self.init_serial(serial_port, baud_rate, timeout)
-        self.db = self.init_dbc(dbc_path)
+        self.dbc = self.init_dbc(dbc_path)
         self.message_state = State.SOM
         self.buffer = []
         self.datagram = None
@@ -81,7 +81,7 @@ class DatagramDecoder:
     
     def read_test(self, byte):
         if self.parse_byte(byte):
-            message = self.db.get_message_by_frame_id(self.datagram['id'])
+            message = self.dbc.get_message_by_frame_id(self.datagram['id'])
             decoded_data = message.decode(bytes(self.datagram['data']))
             if message.name in self.AFE_MSGS:
                 decoded_data = self.convert_AFE_msg(message, decoded_data)
@@ -96,12 +96,18 @@ class DatagramDecoder:
         if not self.datagram:
             return None
 
-        message = self.db.get_message_by_frame_id(self.datagram["id"])
+        message = self.dbc.get_message_by_frame_id(self.datagram["id"])
         if not message:
             print(f"Unknown message ID: {self.datagram['id']}")
             return None
 
         decoded_data = message.decode(bytes(self.datagram["data"]))
+        if message.name in self.AFE_MSGS:
+            decoded_data = self.convert_AFE_msg(message, decoded_data)
+        if message.name == "battery_status":
+            decoded_data = self.convert_bms_fault(decoded_data["fault"])
+        if message.name == "pd_status":
+            pass
         return self._format_decoded_message(message, decoded_data)
 
     def _format_decoded_message(self, message, decoded_data):
@@ -113,7 +119,7 @@ class DatagramDecoder:
         return formatted_data
 
     def is_valid_id(self, id):
-        return self.db.get_message_by_frame_id(id) is not None
+        return self.dbc.get_message_by_frame_id(id) is not None
 
     def _reset_buffer(self):
         self.buffer = []
