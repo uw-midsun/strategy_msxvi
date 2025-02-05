@@ -87,7 +87,7 @@ class DatagramDecoder:
             if message.name == "battery_status":
                 decoded_data = self.convert_bms_fault(decoded_data["fault"])
             if message.name == "pd_status":
-                pass
+                decoded_data = self.convert_pd_fault(decoded_data["fault"])
             return decoded_data
 
     def is_valid_id(self, id):
