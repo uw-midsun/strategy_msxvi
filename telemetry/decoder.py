@@ -32,6 +32,11 @@ class DatagramDecoder:
             "BMS_FAULT_DISCONNECTED"
         ]
 
+        self.PD_FAULTS = self.BMS_FAULTS + [
+            "BMS_FAULT_LOW_PRIORITY",
+            "BMS_FAULT_HIGH_PRIORITY"
+        ]
+
         self.init_serial()
         self.init_dbc()
 
@@ -63,23 +68,15 @@ class DatagramDecoder:
         AFE_v3_name = AFE_num+"v"+str(3+(3*msg_id))
         AFE_message = {"id": msg_id, AFE_temp_name: raw_AFE_decoded_data["temp"], AFE_v1_name: raw_AFE_decoded_data["v1"], AFE_v2_name: raw_AFE_decoded_data["v2"], AFE_v3_name: raw_AFE_decoded_data["v3"]}
         return AFE_message    
+
+    def convert_fault(self, fault_bitset, fault_list):
+        return {fault: int(bool(fault_bitset & (1 << i))) for i, fault in enumerate(fault_list)}
     
     def convert_bms_fault(self, fault_bitset):
-        fault_msg = {"BMS_FAULT_OVERVOLTAGE": 0,
-            "BMS_FAULT_UNBALANCE": 0, 
-            "BMS_FAULT_OVERTEMP_AMBIENT": 0,
-            "BMS_FAULT_COMMS_LOSS_AFE": 0,
-            "BMS_FAULT_COMMS_LOSS_CURR_SENSE": 0,
-            "BMS_FAULT_OVERTEMP_CELL": 0,
-            "BMS_FAULT_OVERCURRENT": 0,
-            "BMS_FAULT_UNDERVOLTAGE": 0,
-            "BMS_FAULT_KILLSWITCH": 0,
-            "BMS_FAULT_RELAY_CLOSE_FAILED": 0,
-            "BMS_FAULT_DISCONNECTED": 0}
-        for i in range(len(self.BMS_FAULTS)):
-            if fault_bitset & (1 << i):
-                fault_msg[self.BMS_FAULTS[i]] = 1
-        return fault_msg
+        return self.convert_fault(fault_bitset, self.BMS_FAULTS)
+
+    def convert_pd_fault(self, fault_bitset):
+        return self.convert_fault(fault_bitset, self.PD_FAULTS)
 
     def read_test(self, byte):
         if self.parse_byte(byte):
