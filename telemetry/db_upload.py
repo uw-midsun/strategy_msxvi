@@ -1,45 +1,113 @@
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
 import time
-import random
+from db.connect import connect_to_db
 
-# Configuration
-url = "http://localhost:8086"
-token = "token"
-org = "org"
-bucket = "bucket"
+class DBUpload:
+    def __init__(self):
+        self.connection = connect_to_db()
+        self.cursor = self.connection.cursor()
+        self.init_table()
 
-client = InfluxDBClient(url=url, token=token, org=org)
-write_api = client.write_api(write_options=SYNCHRONOUS)
+    def init_table(self):
+        try:
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS telemetry (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    message_name VARCHAR(50),
+                    value FLOAT 
+                );
+            """)
+            self.connection.commit()
+        except Exception as e:
+            print(f"Error creating table: {e}")
+
+    def insert_data_point(self, key, value):
+        self.cursor.execute("""
+            INSERT INTO telemetry (message_name, value)
+            VALUES (%s, %s)
+        """, (key, float(value)))
+
+    def upload(self, buffer):
+        try:
+            for data in buffer:
+                for key, value in data.items():
+                    self.insert_data_point(key, value)
+            self.connection.commit()
+            print("Data uploaded successfully")
+        except Exception as e:
+            print(f"Error uploading data: {e}")
+            self.connection.rollback()
 
 '''
-Telemetry Data:
-- battery_status
-- battery_vt
-- AFE 1
-- AFE 2
-- AFE 3
-- cc_info
-- cc_pedal
-- cc_steering
-- Motor_controller_vc 
-- motor_velocity
-- mc_status
-- pd_status
+assume every 200ms
+(pedal freq every 20ms
+everything else 200ms)
+
+Set baud rate to 115200b/s
+
+Telemetry Data (total = 74 bytes, 592 bits):
+- battery_status (7 bytes)  bms-carrier/inc/bms.h
+    - fault (Bitset)
+    - fault value
+    - aux_battery_v
+    - afe_status
+- battery_vt (8 bytes)
+    - voltage
+    - current
+    - temperature
+    - batt_perc
+- AFE 1 (8 bytes)
+    - id
+    - temp
+    - v1
+    - v2
+    - v3
+- AFE 2 (8 bytes)
+    - id
+    - temp
+    - v1
+    - v2
+    - v3
+- AFE 3 (8 bytes)
+    - id
+    - temp
+    - v1
+    - v2
+    - v3
+(Each AFE will send data 4 times (id: 0-3). Each id does 3 cells to make up the voltage of cell 1-12.
+the temp will be for 4 cells so temp of id 0-2 are valid temperatures, the id 3 will be a garbage value)
+- cc_info (8 bytes)
+    - target velocity
+    - drive state
+    - cruise_control
+    - regen_breaking
+    - hazard_enabled
+- cc_pedal (5 bytes)
+    - throttle_output
+    - brake_output
+- cc_steering (2 bytes)
+    - input_cc
+    - input_lights
+- Motor_controller_vc (8 bytes)
+    - mc_voltage_l
+    - mc_current_l
+    - mc_voltage_r
+    - mc_current_r
+- motor_velocity (5 bytes)
+    - velocity_l
+    - velocity_r
+    - brakes_enabled
+- mc_status (7 bytes)
+    - limit_bitset_l no
+    - error_bitset_l no
+    - limit_bitset_r no
+    - error_bitset_r no
+    - board_fault_bitset no
+    - overtemp_bitset no
+    - precharge_status
+- pd_status (6 bytes)
+    - power_state
+    - fault_bitset (Bitset)
+    - bps_persist
+    - bps_persist_val
 '''
-
-while True:
-    #example:
-    temperature = random.uniform(20.0, 25.0)
-    current = random.uniform(5.0, 15.0)
-
-    # Create data point
-    point = Point("telemetry") \
-        .field("temperature", temperature) \
-        .field("current", current) \
-        .time(time.time_ns())
-
-    write_api.write(bucket=bucket, org=org, record=point)
-
-    print(f"Data written: temperature={temperature}, current={current}")
-    time.sleep(1)

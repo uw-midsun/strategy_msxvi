@@ -107,10 +107,10 @@ def insert_data():
     cursor = connection.cursor()
 
     try:
-        print(f"Clearing existing data from route_model table...")
-        cursor.execute(f"DELETE FROM route_model")
+        print("Clearing existing data from route_model table...")
+        cursor.execute("DELETE FROM route_model")
 
-        print(f"Inserting data into route_model table... (this may take a while)")
+        print("Inserting data into route_model table... (this may take a while)")
 
         args_str = ",".join("('%s', '%s', '%s', '%s', '%s', '%s', '%s')"
                             % (stage_name, lat, long, elevation, distance, orientation, road_angle)
