@@ -1,6 +1,9 @@
 import pandas as pd
-from db.connect import connect_to_db
 
+# Need to import db functions from the /db directory
+import sys
+sys.path.append("db")
+from connect import connect_to_db
 
 def fetch_data(query):
     connection = connect_to_db()
