@@ -20,10 +20,17 @@ def map_routemodel(route_model_df, distance):
     closest_row = route_model_df.iloc[(route_model_df['distance'] - distance).abs().idxmin()]
     return closest_row
 
+# def map_irradiance(irradiance_df, distance, time):
+#     closest_distance_row = irradiance_df.iloc[(irradiance_df['diststamp'] - distance).abs().idxmin()]
+#     closest_rows = irradiance_df[irradiance_df['diststamp'] == closest_distance_row['diststamp']]
+#     closest_row = irradiance_df.iloc[(closest_rows['timestamp'] - time).abs().idxmin()]
+#     return closest_row
+
 def map_irradiance(irradiance_df, distance, time):
-    closest_distance_row = irradiance_df.iloc[(irradiance_df['diststamp'] - distance).abs().idxmin()]
-    closest_rows = irradiance_df[irradiance_df['diststamp'] == closest_distance_row['diststamp']]
-    closest_row = irradiance_df.iloc[(closest_rows['timestamp'] - time).abs().idxmin()]
+    closest_distance_idx = (irradiance_df['diststamp'] - distance).abs().idxmin()
+    closest_distance_row = irradiance_df.iloc[closest_distance_idx]
+    closest_time_idx = (irradiance_df[irradiance_df['diststamp'] == closest_distance_row['diststamp']]['timestamp'] - time).abs().idxmin()
+    closest_row = irradiance_df.iloc[closest_time_idx]
     return closest_row
 
 # Power (In/Out)
