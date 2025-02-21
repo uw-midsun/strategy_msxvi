@@ -16,7 +16,7 @@ BAT_CAPACITY = 40 * 3.63 * 36 * 3600  # Pack capacity (J)
 # ETL & Utils
 route_model_df, irradiance_df = load_data_to_memory()
 
-def map_distance_to_id(route_model_df, stage_name, distance):
+def map_routemodel(route_model_df, distance):
     closest_row = route_model_df.iloc[(route_model_df['distance'] - distance).abs().idxmin()]
     return closest_row
 
@@ -51,13 +51,13 @@ def sim(velocities, DISC, STAGE_SYMBOL, CURRENT_D):
     capacity_values = np.full(DISC, BAT_CAPACITY)
     
     for i, v in enumerate(velocities):
-        # Calculate the distance and road angle
+        # Preliminary calcs
         d = CURRENT_D + v * i
-        theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])
-        
-        # Get the irradiance and calculate solar power
         time = irradiance_df['timestamp'][0] + i
-        irradiance = map_irradiance(irradiance_df, 8000, time)['gti']
+        theta = np.deg2rad(map_routemodel(route_model_df, d)['road_angle'])
+        irradiance = map_irradiance(irradiance_df, d, time)['gti']
+        
+        # Calculate solar power
         solar_power_values[i] = solar_power(irradiance)
         
         # Calculate resistances
