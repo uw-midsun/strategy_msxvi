@@ -20,6 +20,12 @@ def map_distance_to_id(route_model_df, stage_name, distance):
     closest_row = route_model_df.iloc[(route_model_df['distance'] - distance).abs().idxmin()]
     return closest_row
 
+def map_irradiance(irradiance_df, distance, time):
+    closest_distance_row = irradiance_df.iloc[(irradiance_df['diststamp'] - distance).abs().idxmin()]
+    closest_rows = irradiance_df[irradiance_df['diststamp'] == closest_distance_row['diststamp']]
+    closest_row = irradiance_df.iloc[(closest_rows['timestamp'] - time).abs().idxmin()]
+    return closest_row
+
 # Power (In/Out)
 def rolling_resistance(v):
     return (M * G * C_R1 + 4 * C_R2 * v) * v
@@ -32,31 +38,26 @@ def gradient_resistance(v, theta):
         return 0
     return M * G * np.sin(theta) * v
 
-def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
-    normalized_time = time_seconds / day_duration
-    irradiance = peak_irradiance * (-4 * (normalized_time - 0.5)**2 + 1)
-    return max(irradiance, 0)
-
 def solar_power(G):
     return A_SOLAR * G * N
 
 # Simulation
-def sim(velocities, DISC, INTER, STAGE_SYMBOL, CURRENT_D):
+def sim(velocities, DISC, STAGE_SYMBOL, CURRENT_D):
     # Initialize arrays
     solar_power_values = np.zeros(DISC)
     rolling_resistance_values = np.zeros(DISC)
     drag_resistance_values = np.zeros(DISC)
     gradient_resistance_values = np.zeros(DISC)
     capacity_values = np.full(DISC, BAT_CAPACITY)
-    times = np.arange(1, INTER * DISC, INTER)
     
     for i, v in enumerate(velocities):
         # Calculate the distance and road angle
-        d = CURRENT_D + v * times[i]
+        d = CURRENT_D + v * i
         theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])
         
         # Get the irradiance and calculate solar power
-        irradiance = mock_irradiance(times[i])
+        time = irradiance_df['timestamp'][0] + i
+        irradiance = map_irradiance(irradiance_df, 8000, time)['gti']
         solar_power_values[i] = solar_power(irradiance)
         
         # Calculate resistances
