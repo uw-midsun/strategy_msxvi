@@ -1,45 +1,41 @@
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.write_api import SYNCHRONOUS
-import time
-import random
+from db.connect import connect_to_db
+from psycopg2.extras import execute_values
 
-# Configuration
-url = "http://localhost:8086"
-token = "token"
-org = "org"
-bucket = "bucket"
+class DBUpload:
+    def __init__(self):
+        self.connection = connect_to_db()
+        self.cursor = self.connection.cursor()
+        self.init_table()
 
-client = InfluxDBClient(url=url, token=token, org=org)
-write_api = client.write_api(write_options=SYNCHRONOUS)
+    def init_table(self):
+        try:
+            self.cursor.execute("""
+                CREATE TABLE IF NOT EXISTS telemetry (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    message_name VARCHAR(50),
+                    value FLOAT 
+                );
+            """)
+            self.connection.commit()
+        except Exception as e:
+            print(f"Error creating table: {e}")
 
-'''
-Telemetry Data:
-- battery_status
-- battery_vt
-- AFE 1
-- AFE 2
-- AFE 3
-- cc_info
-- cc_pedal
-- cc_steering
-- Motor_controller_vc 
-- motor_velocity
-- mc_status
-- pd_status
-'''
+    def insert_data_point(self, key, value):
+        self.cursor.execute("""
+            INSERT INTO telemetry (message_name, value)
+            VALUES (%s, %s)
+        """, (key, float(value)))
 
-while True:
-    #example:
-    temperature = random.uniform(20.0, 25.0)
-    current = random.uniform(5.0, 15.0)
-
-    # Create data point
-    point = Point("telemetry") \
-        .field("temperature", temperature) \
-        .field("current", current) \
-        .time(time.time_ns())
-
-    write_api.write(bucket=bucket, org=org, record=point)
-
-    print(f"Data written: temperature={temperature}, current={current}")
-    time.sleep(1)
+    def upload(self, buffer):
+        try:
+            values = [(key, float(value)) for data in buffer for key, value in data.items()] 
+            execute_values(self.cursor, """
+                INSERT INTO telemetry (message_name, value)
+                VALUES %s
+            """, values)
+            self.connection.commit()
+            print("Data uploaded successfully")
+        except Exception as e:
+            print(f"Error uploading data: {e}")
+            self.connection.rollback()
