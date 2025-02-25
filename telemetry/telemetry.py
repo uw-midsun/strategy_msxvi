@@ -7,7 +7,7 @@ from db_upload import DBUpload
 decoder = DatagramDecoder()
 db = DBUpload()
 
-data_queue = queue.Queue(maxsize=5000)
+data_queue = queue.Queue(maxsize=10000)
 upload_interval = 2
 
 def data_upload():
