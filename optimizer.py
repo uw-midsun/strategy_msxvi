@@ -3,7 +3,7 @@ from simulation import sim
 
 def optimize_velocity(initial_velocities, DISC, INTER, STAGE_SYMBOL, CURRENT_D):
     """
-    Returns velocity profile to maximize the final battery capacity and battery capacity itself. THIS DOESNT WORK, IT'S JUST A TEMPLATE FOR SCIPY MINIMIZE.
+    Returns velocity profile to maximize the final battery capacity. THIS DOESNT WORK, IT'S JUST A TEMPLATE FOR SCIPY MINIMIZE.
     """
     bounds = [(10, 20)]
     args = (DISC, INTER, STAGE_SYMBOL, CURRENT_D)

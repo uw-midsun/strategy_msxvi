@@ -16,8 +16,15 @@ BAT_CAPACITY = 40 * 3.63 * 36 * 3600  # Pack capacity (J)
 # ETL & Utils
 route_model_df, irradiance_df = load_data_to_memory()
 
-def map_distance_to_id(route_model_df, stage_name, distance):
+def map_routemodel(route_model_df, distance):
     closest_row = route_model_df.iloc[(route_model_df['distance'] - distance).abs().idxmin()]
+    return closest_row
+
+def map_irradiance(irradiance_df, distance, time):
+    closest_distance_idx = (irradiance_df['diststamp'] - distance).abs().idxmin()
+    closest_distance_row = irradiance_df.iloc[closest_distance_idx]
+    closest_time_idx = (irradiance_df[irradiance_df['diststamp'] == closest_distance_row['diststamp']]['timestamp'] - time).abs().idxmin()
+    closest_row = irradiance_df.iloc[closest_time_idx]
     return closest_row
 
 # Power (In/Out)
@@ -32,31 +39,26 @@ def gradient_resistance(v, theta):
         return 0
     return M * G * np.sin(theta) * v
 
-def mock_irradiance(time_seconds, day_duration=28800, peak_irradiance=1000):
-    normalized_time = time_seconds / day_duration
-    irradiance = peak_irradiance * (-4 * (normalized_time - 0.5)**2 + 1)
-    return max(irradiance, 0)
-
 def solar_power(G):
     return A_SOLAR * G * N
 
 # Simulation
-def sim(velocities, DISC, INTER, STAGE_SYMBOL, CURRENT_D):
+def sim(velocities, DISC, STAGE_SYMBOL, CURRENT_D):
     # Initialize arrays
     solar_power_values = np.zeros(DISC)
     rolling_resistance_values = np.zeros(DISC)
     drag_resistance_values = np.zeros(DISC)
     gradient_resistance_values = np.zeros(DISC)
     capacity_values = np.full(DISC, BAT_CAPACITY)
-    times = np.arange(1, INTER * DISC, INTER)
     
     for i, v in enumerate(velocities):
-        # Calculate the distance and road angle
-        d = CURRENT_D + v * times[i]
-        theta = np.deg2rad(map_distance_to_id(route_model_df, STAGE_SYMBOL, d)['road_angle'])
+        # Preliminary calcs
+        d = CURRENT_D + v * i
+        time = irradiance_df['timestamp'][0] + i
+        theta = np.deg2rad(map_routemodel(route_model_df, d)['road_angle'])
+        irradiance = map_irradiance(irradiance_df, d, time)['gti']
         
-        # Get the irradiance and calculate solar power
-        irradiance = mock_irradiance(times[i])
+        # Calculate solar power
         solar_power_values[i] = solar_power(irradiance)
         
         # Calculate resistances
