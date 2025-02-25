@@ -10,7 +10,7 @@ class State:
     VALID = "VALID"
 
 class DatagramDecoder:
-    def __init__(self, serial_port="/dev/tty.usbmodem1101", baud_rate=115200, timeout=1, dbc_path="system_can.dbc", test=False):
+    def __init__(self, serial_port="/dev/tty.usbmodem141301", baud_rate=115200, timeout=1, dbc_path="system_can.dbc", test=False):
         #REPLACE serial_port WITH YOUR COMPUTER's SERIAL PORT. TODO: make this process easier
         self.dbc = self.init_dbc(dbc_path)
         if not test:
@@ -95,7 +95,7 @@ class DatagramDecoder:
         if message.name == "battery_status":
             decoded_data = self.convert_BMS_fault(decoded_data)
         if message.name == "pd_status":
-            decoded_data = self.convert_PD_fault(decoded_data["fault"])
+            decoded_data = self.convert_PD_fault(decoded_data)
         return decoded_data
 
     def is_valid_id(self, id):
