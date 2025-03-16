@@ -1,5 +1,6 @@
 import cantools
 import serial
+import struct
 
 class State:
     SOM = "SOM"
@@ -10,7 +11,7 @@ class State:
     VALID = "VALID"
 
 class DatagramDecoder:
-    def __init__(self, serial_port="/dev/tty.usbmodem141301", baud_rate=115200, timeout=1, dbc_path="system_can.dbc", test=False):
+    def __init__(self, serial_port="/dev/tty.usbserial-D30DPX93", baud_rate=115200, timeout=1, dbc_path="system_can.dbc", test=False):
         #REPLACE serial_port WITH YOUR COMPUTER's SERIAL PORT. TODO: make this process easier
         self.dbc = self.init_dbc(dbc_path)
         if not test:
@@ -75,6 +76,15 @@ class DatagramDecoder:
         pd_msg["bps_persist"] = decoded_data["bps_persist"]
         return pd_msg
 
+    def int_to_float(self, value):
+        return struct.unpack('<f', value.to_bytes(4, byteorder='little'))[0]
+
+    def convert_pedal_throttle(self, decoded_data):
+        return {
+            "throttle_output": self.int_to_float(decoded_data["throttle_output"]),
+            "brake_output": decoded_data["brake_output"],
+        }
+
     def read(self):
         while self.ser.in_waiting > 0:
             byte = self.ser.read(1)[0]
@@ -96,6 +106,8 @@ class DatagramDecoder:
             decoded_data = self.convert_BMS_fault(decoded_data)
         if message.name == "pd_status":
             decoded_data = self.convert_PD_fault(decoded_data)
+        if message.name == "cc_pedal":
+            decoded_data = self.convert_pedal_throttle(decoded_data)
         return decoded_data
 
     def is_valid_id(self, id):
@@ -117,7 +129,7 @@ class DatagramDecoder:
                 self.message_state = State.ID
         elif self.message_state == State.ID:
             self.buffer.append(byte)
-            if len(self.buffer) == 4:
+            if len(self.buffer) == 2:
                 message_id = int.from_bytes(self.buffer, byteorder="big")
                 if self.is_valid_id(message_id):
                     self.datagram = {"id": message_id}

@@ -20,6 +20,8 @@ class DBUpload:
             self.connection.commit()
         except Exception as e:
             print(f"Error creating table: {e}")
+            self.connection.rollback()  # Rollback any errors
+            self.cursor.execute("BEGIN;")  # Start a fresh transaction
 
     def insert_data_point(self, key, value):
         self.cursor.execute("""
