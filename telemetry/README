@@ -1,15 +1,10 @@
-run -> export PYTHONPATH=<your path to strategy_msxvi>
-*windows is set PYTHONPATH=
+# Telemetry 
 
-assume every 200ms
-(pedal freq every 20ms
-everything else 200ms)
+Messages are transmitted at a baud rate of 115200bps
 
-Set baud rate to 115200b/s
-
-Telemetry Data (total = 74 bytes, 592 bits):
-- battery_status (7 bytes)  bms-carrier/inc/bms.h
-    - fault (Bitset)
+This is the following data that we care about (All data in system_can.dbc): 
+- battery_status (7 bytes)
+    - fault (Bitset @ bms-carrier/inc/bms.h)
     - fault value
     - aux_battery_v
     - afe_status
@@ -18,6 +13,7 @@ Telemetry Data (total = 74 bytes, 592 bits):
     - current
     - temperature
     - batt_perc
+- battery_info
 - AFE 1 (8 bytes)
     - id
     - temp
@@ -36,8 +32,6 @@ Telemetry Data (total = 74 bytes, 592 bits):
     - v1
     - v2
     - v3
-(Each AFE will send data 4 times (id: 0-3). Each id does 3 cells to make up the voltage of cell 1-12.
-the temp will be for 4 cells so temp of id 0-2 are valid temperatures, the id 3 will be a garbage value)
 - cc_info (8 bytes)
     - target velocity
     - drive state
@@ -47,9 +41,6 @@ the temp will be for 4 cells so temp of id 0-2 are valid temperatures, the id 3 
 - cc_pedal (5 bytes)
     - throttle_output
     - brake_output
-- cc_steering (2 bytes)
-    - input_cc
-    - input_lights
 - Motor_controller_vc (8 bytes)
     - mc_voltage_l
     - mc_current_l
@@ -59,16 +50,13 @@ the temp will be for 4 cells so temp of id 0-2 are valid temperatures, the id 3 
     - velocity_l
     - velocity_r
     - brakes_enabled
-- mc_status (7 bytes)
-    - limit_bitset_l no(don't need)
-    - error_bitset_l no(don't need)
-    - limit_bitset_r no(don't need)
-    - error_bitset_r no(don't need)
-    - board_fault_bitset no(don't need)
-    - overtemp_bitset no(don't need)
+- mc_status (1 byte)
     - precharge_status
 - pd_status (6 bytes)
     - power_state
-    - fault_bitset (Bitset)
+    - fault_bitset (ms-common/inc/exported_enums.h)
     - bps_persist
     - bps_persist_val
+
+> Each AFE will send data 4 times (id: 0-3). Each id corresponds to 3 cells which make up the voltage of cell 1-12.
+> the temp corresponds to 4 cells so temp of id 0-2 are valid temperatures, the id 3 is a garbage value

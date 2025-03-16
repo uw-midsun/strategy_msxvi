@@ -2,6 +2,7 @@ import time
 from decoder import DatagramDecoder
 
 def main():
+    # Initialize the DatagramDecoder
     decoder = DatagramDecoder()
 
     # Ensure serial connection is valid
