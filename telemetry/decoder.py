@@ -12,7 +12,6 @@ class State:
 
 class DatagramDecoder:
     def __init__(self, serial_port="/dev/tty.usbserial-D30DPX93", baud_rate=115200, timeout=1, dbc_path="system_can.dbc", test=False):
-        #REPLACE serial_port WITH YOUR COMPUTER's SERIAL PORT. TODO: make this process easier
         self.dbc = self.init_dbc(dbc_path)
         if not test:
             self.ser = self.init_serial(serial_port, baud_rate, timeout)
