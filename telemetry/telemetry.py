@@ -1,10 +1,3 @@
-import sys
-import os
-
-# Add the parent directory (telemetry) to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../db")))
-
 import threading
 import queue
 import time
@@ -14,7 +7,7 @@ from db_upload import DBUpload
 decoder = DatagramDecoder()
 db = DBUpload()
 
-data_queue = queue.Queue(maxsize=5000)
+data_queue = queue.Queue(maxsize=10000)
 upload_interval = 2
 
 def data_upload():
@@ -35,7 +28,6 @@ upload_thread.start()
 while True:
     data = decoder.read()
     if data:
-        print(f"Decoded Data: {data}")
         try:
             data_queue.put_nowait(data)
         except queue.Full:
