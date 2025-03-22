@@ -5,4 +5,5 @@ __pycache__
 autograd.ipynb
 test.ipynb
 logfile
-
+telemetry/Lib
+telemetry/Scripts
