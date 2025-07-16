@@ -43,28 +43,29 @@ def solar_power(G):
     return A_SOLAR * G * N
 
 # Simulation
-def sim(velocities, DISC, STAGE_SYMBOL, CURRENT_D):
+def sim(velocities, STEP, CURRENT_D):
     # Initialize arrays
-    solar_power_values = np.zeros(DISC)
-    rolling_resistance_values = np.zeros(DISC)
-    drag_resistance_values = np.zeros(DISC)
-    gradient_resistance_values = np.zeros(DISC)
-    capacity_values = np.full(DISC, BAT_CAPACITY)
+    solar_power_values = np.zeros(len(velocities))
+    rolling_resistance_values = np.zeros(len(velocities))
+    drag_resistance_values = np.zeros(len(velocities))
+    gradient_resistance_values = np.zeros(len(velocities))
+    capacity_values = np.full(len(velocities), BAT_CAPACITY)
+    d = CURRENT_D
     
     for i, v in enumerate(velocities):
         # Preliminary calcs
-        d = CURRENT_D + v * i
-        time = irradiance_df['timestamp'][0] + i
+        d += v * STEP
+        time = irradiance_df['timestamp'][0] + i * STEP
         theta = np.deg2rad(map_routemodel(route_model_df, d)['road_angle'])
         irradiance = map_irradiance(irradiance_df, d, time)['gti']
         
         # Calculate solar power
-        solar_power_values[i] = solar_power(irradiance)
+        solar_power_values[i] = solar_power(irradiance) * STEP
         
         # Calculate resistances
-        rolling_resistance_values[i] = rolling_resistance(v)
-        drag_resistance_values[i] = drag_resistance(v)
-        gradient_resistance_values[i] = gradient_resistance(v, theta)
+        rolling_resistance_values[i] = rolling_resistance(v) * STEP
+        drag_resistance_values[i] = drag_resistance(v) * STEP
+        gradient_resistance_values[i] = gradient_resistance(v, theta) * STEP
         
         # Update battery capacity
         if capacity_values[i-1] > BAT_CAPACITY:
@@ -72,7 +73,11 @@ def sim(velocities, DISC, STAGE_SYMBOL, CURRENT_D):
         else:
             capacity_values[i] = capacity_values[i - 1] + solar_power_values[i - 1] - rolling_resistance_values[i - 1] - drag_resistance_values[i - 1] - gradient_resistance_values[i - 1]
 
-    capacity_values /= DISC # Joules --> Wh
+        # If we run out of battery at this step, don't reward the optimization function by letting distance travelled continue to accumulate
+        if capacity_values[i] < 0:
+            d -= v * STEP
+
+    capacity_values /= STEP # Joules --> Wh
     
     # Stack the results into a single matrix
     sim_data = np.column_stack((
@@ -83,4 +88,4 @@ def sim(velocities, DISC, STAGE_SYMBOL, CURRENT_D):
         capacity_values
     ))
     
-    return -capacity_values[-1], sim_data
+    return -capacity_values[-1], sim_data, d
