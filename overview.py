@@ -1,30 +1,36 @@
 import matplotlib.pyplot as plt
 from db import load_data_to_memory
 
-# Stage
-STAGE_SYMBOL = '1B'
+def get_stage_bounds(df, sym):
+    d = df[df['stage_name'].str.startswith(f'{sym}_')]['distance']
+    return d.iloc[0], d.iloc[-1]
 
-# Load data
-route_model_df, irradiance_df = load_data_to_memory()
-route_model_df = route_model_df.sort_values(by="distance")
+def show_overview(sym, route_model_df=None):
+    if route_model_df is None:
+        df, _ = load_data_to_memory()
+        df = df.sort_values('distance')
+    else:
+        df = route_model_df
+    
+    d0, d1 = get_stage_bounds(df, sym)
+    print(f'Stage {sym} total distance: {(d1 - d0) / 1000:.2f} km')
 
-# Stage distance
-stage_d = (route_model_df.loc[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_'), 'distance'].iloc[-1] - 
-           route_model_df.loc[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_'), 'distance'].iloc[0]) / 1000
-print(f'Stage {STAGE_SYMBOL} total distance: {stage_d:.2f} km')
+    s = df[df['stage_name'].str.startswith(f'{sym}_')]
+    plt.figure(figsize=(14, 7))
+    plt.plot(s['distance'], s['elevation'])
+    plt.title(f'{sym} Elevation Profile')
+    plt.xlabel('Distance (m)')
+    plt.ylabel('Elevation (m)')
+    plt.show()
 
-# Stage elevation profile
-plt.figure(figsize=(14, 7))
-plt.plot(route_model_df.loc[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')]['distance'], route_model_df.loc[route_model_df['stage_name'].str.startswith(f'{STAGE_SYMBOL}_')]['elevation'])
-plt.title(f'{STAGE_SYMBOL} Elevation Profile')
-plt.xlabel('Distance (m)')
-plt.ylabel('Elevation (m)')
+    plt.figure(figsize=(14, 7))
+    for k, g in df.groupby('stage_name'):
+        plt.plot(g['distance'], g['elevation'], label=k)
+    plt.title('Total Elevation Profile')
+    plt.xlabel('Distance (m)')
+    plt.ylabel('Elevation (m)')
+    plt.legend()
+    plt.show()
 
-# Total elevation profile
-plt.figure(figsize=(14, 7))
-for symbol, subset in route_model_df.groupby('stage_name'):
-    plt.plot(subset['distance'], subset['elevation'], label=symbol)
-plt.title('Total Elevation Profile')
-plt.xlabel('Distance (m)')
-plt.ylabel('Elevation (m)')
-plt.legend()
+if __name__ == "__main__":
+    show_overview('1B')

@@ -6,7 +6,7 @@ sys.path.append("db")
 from connect import connect_to_db
 
 def fetch_data(query):
-    connection = connect_to_db()
+    connection = connect_to_db(verbose=False)
     cursor = connection.cursor()
     try:
         cursor.execute(query)
