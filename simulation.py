@@ -1,7 +1,6 @@
 import numpy as np
 from db import load_data_to_memory
 
-# Constants
 M = 300.0  # Mass of vehicle (kg)
 G = 9.81  # Acceleration due to gravity (m/s^2)
 C_R1 = 0.004  # Rolling resistance coefficient 1
@@ -13,79 +12,56 @@ N = 0.16  # Efficiency of solar panel (%)
 A_SOLAR = 4.0  # Area of solar panel (m^2)
 BAT_CAPACITY = 40 * 3.63 * 36 * 3600  # Pack capacity (J)
 
-# ETL & Utils
-route_model_df, irradiance_df = load_data_to_memory()
+# Global variables to cache the data
+_routedf = None
+_irradf = None
 
-def map_routemodel(route_model_df, distance):
-    closest_row = route_model_df.iloc[(route_model_df['distance'] - distance).abs().idxmin()]
-    return closest_row
+def _get_data():
+    """Lazy load data only when needed"""
+    global _routedf, _irradf
+    if _routedf is None or _irradf is None:
+        _routedf, _irradf = load_data_to_memory()
+    return _routedf, _irradf
 
-def map_irradiance(irradiance_df, distance, time):
-    closest_distance_idx = (irradiance_df['diststamp'] - distance).abs().idxmin()
-    closest_distance_row = irradiance_df.iloc[closest_distance_idx]
-    closest_time_idx = (irradiance_df[irradiance_df['diststamp'] == closest_distance_row['diststamp']]['timestamp'] - time).abs().idxmin()
-    closest_row = irradiance_df.iloc[closest_time_idx]
-    return closest_row
+def map_route(d): 
+    routedf, _ = _get_data()
+    return routedf.iloc[(routedf['distance'] - d).abs().idxmin()]
 
-# Power (In/Out)
-def rolling_resistance(v):
-    return (M * G * C_R1 + 4 * C_R2 * v) * v
+def map_irrad(d, t):
+    _, irradf = _get_data()
+    idx = (irradf['diststamp'] - d).abs().idxmin()
+    row = irradf.iloc[idx]
+    ts = irradf[irradf['diststamp'] == row['diststamp']]['timestamp']
+    return irradf.iloc[(ts - t).abs().idxmin()]
 
-def drag_resistance(v):
-    return 0.5 * P * C_D * A_DRAG * v ** 3
+def rr(v): return (M * G * C_R1 + 4 * C_R2 * v) * v
+def drag(v): return 0.5 * P * C_D * A_DRAG * v**3
+def grad(v, theta): return max(0, M * G * np.sin(theta) * v)
+def solar(G): return A_SOLAR * G * N
 
-def gradient_resistance(v, theta):
-    if theta < 0:
-        return 0
-    return M * G * np.sin(theta) * v
+def sim(vs, dt, d0):
+    n = len(vs)
+    sp, rr_v, dr_v, gr_v, cap = np.zeros(n), np.zeros(n), np.zeros(n), np.zeros(n), np.full(n, BAT_CAPACITY)
+    d = d0
+    _, irradf = _get_data()
+    t0 = irradf['timestamp'][0]
 
-def solar_power(G):
-    return A_SOLAR * G * N
+    for i, v in enumerate(vs):
+        d += v * dt
+        t = t0 + i * dt
+        theta = np.deg2rad(map_route(d)['road_angle'])
+        G = map_irrad(d, t)['gti']
 
-# Simulation
-def sim(velocities, STEP, CURRENT_D):
-    # Initialize arrays
-    solar_power_values = np.zeros(len(velocities))
-    rolling_resistance_values = np.zeros(len(velocities))
-    drag_resistance_values = np.zeros(len(velocities))
-    gradient_resistance_values = np.zeros(len(velocities))
-    capacity_values = np.full(len(velocities), BAT_CAPACITY)
-    d = CURRENT_D
-    
-    for i, v in enumerate(velocities):
-        # Preliminary calcs
-        d += v * STEP
-        time = irradiance_df['timestamp'][0] + i * STEP
-        theta = np.deg2rad(map_routemodel(route_model_df, d)['road_angle'])
-        irradiance = map_irradiance(irradiance_df, d, time)['gti']
-        
-        # Calculate solar power
-        solar_power_values[i] = solar_power(irradiance) * STEP
-        
-        # Calculate resistances
-        rolling_resistance_values[i] = rolling_resistance(v) * STEP
-        drag_resistance_values[i] = drag_resistance(v) * STEP
-        gradient_resistance_values[i] = gradient_resistance(v, theta) * STEP
-        
+        sp[i] = solar(G) * dt
+        rr_v[i] = rr(v) * dt
+        dr_v[i] = drag(v) * dt
+        gr_v[i] = grad(v, theta) * dt
+
         # Update battery capacity
-        if capacity_values[i-1] > BAT_CAPACITY:
-            capacity_values[i] = BAT_CAPACITY
-        else:
-            capacity_values[i] = capacity_values[i - 1] + solar_power_values[i - 1] - rolling_resistance_values[i - 1] - drag_resistance_values[i - 1] - gradient_resistance_values[i - 1]
+        if i > 0:
+            cap[i] = cap[i-1] + sp[i-1] - rr_v[i-1] - dr_v[i-1] - gr_v[i-1]
+            if cap[i] > BAT_CAPACITY: cap[i] = BAT_CAPACITY
+            if cap[i] < 0: d -= v * dt  # If we run out of battery at this step, don't reward the optimization function by letting distance travelled continue to accumulate
 
-        # If we run out of battery at this step, don't reward the optimization function by letting distance travelled continue to accumulate
-        if capacity_values[i] < 0:
-            d -= v * STEP
-
-    capacity_values /= STEP # Joules --> Wh
-    
-    # Stack the results into a single matrix
-    sim_data = np.column_stack((
-        solar_power_values,
-        rolling_resistance_values,
-        drag_resistance_values,
-        gradient_resistance_values,
-        capacity_values
-    ))
-    
-    return -capacity_values[-1], sim_data, d
+    cap /= dt # J to Wh
+    return -cap[-1], np.column_stack((sp, rr_v, dr_v, gr_v, cap)), d

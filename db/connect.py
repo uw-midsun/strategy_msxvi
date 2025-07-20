@@ -42,7 +42,7 @@ def create_db(is_local=False):
     return None
 
 
-def connect_to_db(is_local=False):
+def connect_to_db(is_local=False, verbose=True):
     """
     Return connection to existing cloud postgres database (or local postgres database if is_local is True).
     """
@@ -61,7 +61,8 @@ def connect_to_db(is_local=False):
         connection = psycopg2.connect(
             host=host, port=port, user=user, password=password, dbname=dbname
         )
-        print("Connection successful")
+        if verbose:
+            print("Connection successful")
         return connection  # Return the connection object for further use
 
     except Exception as e:
