@@ -190,4 +190,4 @@ if __name__ == "__main__":
             'end_dist': 870610,
             'hours': 8+24+24
         },
-    ], 3) # MODE = 3, as we do not have the Solcast API yet
+    ], 1) # MODE = 3, as we do not have the Solcast API yet
