@@ -1,6 +1,6 @@
 # MSXVI - FSGP & ASC Strategy
 ## About
-This repository contains the work of the Midnight Sun Strategy team, including code for setting up and interacting with a database, a simulator, and optimization algorithms.
+This repository contains the work of the Midnight Sun Strategy team, including code for setting up and interacting with a database, a simulator, and MPC.
 
 ## FSGP & ASC
 FSGP serves as a qualifying event for ASC. 
@@ -19,9 +19,21 @@ Successfully achieving these objectives hinges on two factors:
 
 Race strategy boils down to a single question:
 
-### **What speed should we drive at?**
+### **What speed should we drive at to maximize distance within race constraints?**
 
 We address this question by leveraging the route, weather, and solar irradiance data. 
+
+## Route Overview
+
+Run *overview.py* to get distance, elevation profile, and irradiance data for a given stage.
+
+## Database
+
+The database is comprised of two tables: the route model and a solar irradiance table.*routemodel.py* parses the route files (.gpx) to generate a table. *irradiance.py* parses live online data (solcast.com), historical data (from solcast.com), or symthetic data to generate a table. 
+
+The database can run offline locally (*loader.py*) and can be synced (*sync.py*) with a cloud instance based on the availability of wifi. 
+
+![Architecture Diagram](docs/architecture.PNG)
 
 ## Simulator
 
@@ -32,22 +44,10 @@ We address this question by leveraging the route, weather, and solar irradiance 
 - **Gradient Resistance**: determined by slope of the road and velocity.
 - **Solar Irradiance**: determined by solar irradiance, vehicle orientation, array efficiency, and velocity.
 
-## Optimizer
+## MPC
 
-*optimizer.py* is intented to optimize the velocity profile for a given objective returned by *sim.py*
+In progress.
 
-## Route Overview
-
-Run *overview.py* to get distance, elevation profile, and irradiance data for a given stage.
-
-## Database
-
-The database is comprised of two tables: the route model and a solar irradiance table. These can be set up by running, *routemodel.py* and *irradiance.py*. The database can run offline locally (*loader.py*) and can be synced (*sync.py*) with a cloud version based on the availability of wifi. 
-
-![Architecture Diagram](docs/architecture.PNG)
-
-## Telemetry
-
-The *telemetry* directory is for getting data from car. Note: this is not integrated with the simulator yet (it is a completely independant entity).
-
-
+## Todo
+- refactor db/
+- mpc.py
