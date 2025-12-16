@@ -19,7 +19,7 @@ def fetch_data(query):
 
 def load_data_to_memory():
     route_model_query = "SELECT * FROM route_model;"
-    irradiance_query = "SELECT * FROM irradiance;"
+    irradiance_query = "SELECT * FROM irradiance_archive;"
 
     route_model_df = fetch_data(route_model_query)
     irradiance_df = fetch_data(irradiance_query)
