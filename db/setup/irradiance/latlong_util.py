@@ -1,12 +1,10 @@
-#!/usr/bin/env python3
-# Pick nearest real DB point to each 5000 m target (no interpolation)
-# Output CSV: data/route_resampled_nearest.csv with latitude, longitude only
+# Pick nearest real DB point to each 5000 m target (no interpolation), output data/route_resampled_nearest.csv with latitude, longitude only
 
 import csv
 import math
 import bisect
 import os
-from connect import connect_to_db  # your existing DB connector
+from connect import connect_to_db
 
 TABLE   = "route_model"      
 STEP_M  = 5000.0

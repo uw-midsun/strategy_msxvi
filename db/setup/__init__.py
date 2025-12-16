@@ -1,2 +1,1 @@
-from db.connect import connect_to_db
-from db.loader import load_data_to_memory
+from db import connect_to_db, load_data_to_memory

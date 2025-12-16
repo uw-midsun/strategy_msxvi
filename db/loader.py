@@ -1,13 +1,8 @@
 import pandas as pd
-import sys
-
-
-sys.path.append("db")
-from connect import connect_to_db
-
+from db.connect import connect_to_db
 
 def fetch_data(query):
-    connection = connect_to_db(verbose=False)
+    connection = connect_to_db()
     cursor = connection.cursor()
     try:
         cursor.execute(query)
@@ -22,7 +17,6 @@ def fetch_data(query):
         connection.close()
     return df
 
-
 def load_data_to_memory():
     route_model_query = "SELECT * FROM route_model;"
     irradiance_query = "SELECT * FROM irradiance;"
@@ -32,7 +26,6 @@ def load_data_to_memory():
 
     print("Data successfully loaded to memory")
     return route_model_df, irradiance_df
-
 
 if __name__ == "__main__":
     route_model_df, irradiance_df = load_data_to_memory()

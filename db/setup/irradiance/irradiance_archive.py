@@ -52,7 +52,7 @@ def _solcast_url(lat, lon, start_iso, duration):
 def init_table():
     numeric = [p for p in PARAMS if p != "weather_type"]
     ddl = (
-        "CREATE TABLE IF NOT EXISTS irradiance ("
+        "CREATE TABLE IF NOT EXISTS irradiance_archive ("
         "latitude DOUBLE PRECISION, "
         "longitude DOUBLE PRECISION, "
         "timestamp DOUBLE PRECISION, "
@@ -65,7 +65,7 @@ def init_table():
     with conn.cursor() as cur:
         cur.execute(ddl)
     conn.close()
-    print("Table 'irradiance' ready.")
+    print("Table 'irradiance_archive' ready.")
 
 def insert_data(day_queries):
     if not API_KEY: raise RuntimeError("Set SOLCAST_API_KEY.")
@@ -76,7 +76,6 @@ def insert_data(day_queries):
     rows = []
     total_requests = len(coords) * len(day_queries)
 
-    # One global progress bar
     with tqdm(total=total_requests, desc="Fetching Solcast", unit="req") as pbar:
         for (lat, lon) in coords:
             for q in day_queries:
@@ -100,12 +99,12 @@ def insert_data(day_queries):
     if not rows:
         print("No rows to insert."); return
 
-    sql = f"INSERT INTO irradiance ({', '.join(COLS)}) VALUES %s"
+    sql = f"INSERT INTO irradiance_archive ({', '.join(COLS)}) VALUES %s"
     conn = connect_to_db()
     if not conn: raise RuntimeError("DB connection failed.")
     with conn:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM irradiance;")
+            cur.execute("DELETE FROM irradiance_archive")
             execute_values(cur, sql, rows, page_size=10000)
     conn.close()
     print(f"Inserted {len(rows)} rows.")

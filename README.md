@@ -51,3 +51,4 @@ In progress.
 ## Todo
 - refactor db/
 - mpc.py
+- README

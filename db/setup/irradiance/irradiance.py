@@ -14,7 +14,6 @@ DIST_DISCR = 8000 #meters
 FAKE_START = dt.datetime(2024,8,15,9,0,0, tzinfo=pytz.timezone("America/New_York")) #MODE=2 for get_irradiance
 COLS = ("diststamp","timestamp","air_temp","gti","precipitation_rate","wind_speed_10m","wind_direction_10m")
 
-
 def init_table():
     """
     Creates table for irradiance data in postgres.
@@ -38,7 +37,6 @@ def init_table():
         cursor.close()
         connection.close()
 
-
 def insert_data(day_queries, MODE, fake_historical_start_time=FAKE_START):
     """
     Inserts irradiance data into irradiance table in the postgres database.
@@ -51,7 +49,6 @@ def insert_data(day_queries, MODE, fake_historical_start_time=FAKE_START):
         execute_values(cursor, sql, rows)
         print(f"Inserted [Mode {MODE}] data into irradiance table")
         connection.commit()
-
 
 def run_irradiance_query(day_queries, MODE, fake_historical_start_time: dt.datetime = FAKE_START):
     """
@@ -93,23 +90,23 @@ def run_irradiance_query(day_queries, MODE, fake_historical_start_time: dt.datet
                 t += TIME_DISCR * 3600  # seconds
             curr_dist += DIST_DISCR
 
-
 def map_distance_to_id(route_model_df, distance):
     """
     Returns id of route_model_df closest to inputted distance (m).
     """
     return route_model_df.iloc[(route_model_df['distance'] - distance).abs().idxmin()]
 
-
 def get_irradiance(API_KEY, lat, lon, azimuth, tilt, hours, 
                    MODE, fake_historical_start_time=FAKE_START):
     """
     Returns array with irradiance data at given location in TIME_DISCR intervals:
+    
     - air_temp (degC)
     - gti (tilted irradiance, W/m^2)
     - precipitation_rate (mm/h)
     - wind_speed_10m (wm/s)
     - wind_direction_10m (degrees)
+
     Has three modes:
     - 1: forecast: queries the Solcast forecast API. Consumes API tokens.
     - 2: historical: queries the Solcast historical API
@@ -171,7 +168,6 @@ def get_irradiance(API_KEY, lat, lon, azimuth, tilt, hours,
         case _:
             raise Exception("Error: get_irradiance must be called with a mode of either 1, 2, or 3.")
 
-
 if __name__ == "__main__":
     init_table()
     insert_data([
@@ -190,4 +186,4 @@ if __name__ == "__main__":
             'end_dist': 870610,
             'hours': 8+24+24
         },
-    ], 1) # MODE = 3, as we do not have the Solcast API yet
+    ], 1) # MODE = 3, as we do not have the Solcast API yet. Use ASC 24 archive data in this repo.

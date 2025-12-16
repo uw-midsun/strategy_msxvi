@@ -2,11 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from simulation import sim
 from overview import show_overview, get_stage_bounds
-from optimizer import optimize_velocity
 from db import load_data_to_memory
 
 def main():
-    route_model_df, _ = load_data_to_memory()
+    route_model_df, irradiance_df = load_data_to_memory()
     route_model_df = route_model_df.sort_values(by="distance")
 
     # Overview of a stage

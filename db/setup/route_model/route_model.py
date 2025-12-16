@@ -31,7 +31,6 @@ def init_table():
         cursor.close()
         connection.close()
 
-
 def insert_data():
     """
     Insert data into route_model table in postgres database.
@@ -44,7 +43,6 @@ def insert_data():
         execute_values(cursor, sql, rows)
         print("Inserted data into route_model table")
         connection.commit()
-
 
 def gpx_parser():
     """
@@ -85,7 +83,6 @@ def gpx_parser():
                 angle,
             )
 
-
 def euclidean_distance(lat1, lon1, lat2, lon2):
     """
     Computes the Euclidean distance between two geographical points.
@@ -95,7 +92,6 @@ def euclidean_distance(lat1, lon1, lat2, lon2):
     x1, y1, z1 = R * math.cos(lat1) * math.cos(lon1), R * math.cos(lat1) * math.sin(lon1), R * math.sin(lat1)
     x2, y2, z2 = R * math.cos(lat2) * math.cos(lon2), R * math.cos(lat2) * math.sin(lon2), R * math.sin(lat2)
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
-
 
 def distance_calc(lats, lons):
     """
@@ -110,7 +106,6 @@ def distance_calc(lats, lons):
         sum_distance += current_distance
         distances[i] = sum_distance
     return distances
-
 
 def orientation_calc(lats, lons):
     """
@@ -130,7 +125,6 @@ def orientation_calc(lats, lons):
         orientations[i] = bearing
     return orientations
 
-
 def moving_median(data, window_size):
     """
     Applies a moving median to the data.
@@ -144,7 +138,6 @@ def moving_median(data, window_size):
         window = padded_data[i - half_window : i + half_window]
         medians[i - half_window] = np.median(window)
     return medians
-
 
 def gradient_calculator(lats, lons, elevations, window_size):
     """
@@ -166,11 +159,9 @@ def gradient_calculator(lats, lons, elevations, window_size):
     smoothed_angles = moving_median(angles, window_size)
     return smoothed_angles
 
-
 def main():
     init_table()
     insert_data()
     
-
 if __name__ == "__main__":
     main()
