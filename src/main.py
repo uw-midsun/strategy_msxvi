@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from optimization import optimize_velocity
 from simulation import sim
 from overview import show_overview, get_stage_bounds
 from db import load_data_to_memory

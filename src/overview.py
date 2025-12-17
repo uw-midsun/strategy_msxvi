@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from db import load_data_to_memory
+from db.load import load_data_to_memory
 
 def get_stage_bounds(df, sym):
     d = df[df['stage_name'].str.startswith(f'{sym}_')]['distance']
