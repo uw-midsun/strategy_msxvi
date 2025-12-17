@@ -1,5 +1,5 @@
 import numpy as np
-from db import load_data_to_memory
+from db.load import load_data_to_memory
 
 M = 300.0  # Mass of vehicle (kg)
 G = 9.81  # Acceleration due to gravity (m/s^2)

@@ -11,4 +11,5 @@ dependencies = [
     "pandas>=2.2.3",
     "psycopg2-binary>=2.9.11",
     "python-dotenv>=1.0.1",
+    "scipy>=1.16.3",
 ]
