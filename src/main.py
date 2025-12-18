@@ -32,7 +32,8 @@ def main():
     plt.ylim(MIN_SPEED, MAX_SPEED)
     plt.xlabel('Time (hours)')
     plt.ylabel('Speed (m/s)')
-    plt.show()
+    plt.savefig("result.png", dpi=150, bbox_inches="tight")
+
     
     print(final_capacity)
 

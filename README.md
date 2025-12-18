@@ -50,5 +50,7 @@ In progress.
 
 ## Todo
 - refactor db/
-- mpc.py
+- refactor simulator.py
+- test slsqp in optimize.py
+- implement mpc in main.py
 - README
