@@ -1,5 +1,6 @@
 import numpy as np
 from db.load import load_data_to_memory
+from src.utils import _get_data
 
 M = 300.0  # Mass of vehicle (kg)
 G = 9.81  # Acceleration due to gravity (m/s^2)
@@ -11,17 +12,6 @@ P = 1.293  # Air density (kg/m^3)
 N = 0.16  # Efficiency of solar panel (%)
 A_SOLAR = 4.0  # Area of solar panel (m^2)
 BAT_CAPACITY = 40 * 3.63 * 36 * 3600  # Pack capacity (J)
-
-# Global variables to cache the data
-_routedf = None
-_irradf = None
-
-def _get_data():
-    """Lazy load data only when needed"""
-    global _routedf, _irradf
-    if _routedf is None or _irradf is None:
-        _routedf, _irradf = load_data_to_memory()
-    return _routedf, _irradf
 
 def map_route(d): 
     routedf, _ = _get_data()

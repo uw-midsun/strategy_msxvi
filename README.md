@@ -49,8 +49,10 @@ The database can run offline locally (*loader.py*) and can be synced (*sync.py*)
 In progress.
 
 ## Todo
-- refactor db/
-- refactor simulator.py
+- overview.py
+- simulator.py
 - test slsqp in optimize.py
 - implement mpc in main.py
 - README
+- refactor db/
+
