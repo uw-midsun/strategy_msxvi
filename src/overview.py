@@ -10,7 +10,7 @@ def plot_elevation(sym):
     d0, d1 = stage['distance'].iloc[[0, -1]]
     print(f'Stage {sym} total distance: {(d1 - d0) / 1000:.2f} km')
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 14))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
 
     ax1.plot(stage['distance'], stage['elevation'])
     ax1.set(title=f'{sym} Elevation Profile', xlabel='Distance (m)', ylabel='Elevation (m)')
@@ -38,7 +38,7 @@ def plot_irradiance(d, t_start, t_end):
     fig, ax = plt.subplots(figsize=(14, 7))
     ax.plot(data['datetime'], data['ghi'])
     ax.set(title=f'GHI Profile for ({lat:.2f}, {lon:.2f})',
-           xlabel='Time', ylabel='GHI (W/m²)')
+           xlabel='Time (hrs)', ylabel='GHI (W/m²)')
     ax.grid(True)
     plt.show()
 
