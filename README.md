@@ -109,22 +109,6 @@ Edit `src/main.py` to configure:
 uv run -m src.main
 ```
 
-### Generate Route Overview
-```python
-from src.overview import plot_elevation, plot_irradiance
-from datetime import datetime
-
-# Plot elevation profile for stage 3H
-plot_elevation("3H")
-
-# Plot irradiance for specific location and time
-plot_irradiance(
-    d=10000,  # Distance along route (meters)
-    t_start=int(datetime(2024, 7, 1, 8, 0).timestamp()),
-    t_end=int(datetime(2024, 7, 1, 20, 0).timestamp())
-)
-```
-
 ### Database Setup
 
 **Option 1: Import Database Dump (Recommended)**
@@ -232,6 +216,4 @@ strategy_msxvi/
 
 ---
 
-*Midnight Sun Solar Racing Team - University of Waterloo*
-
-Email: k22agarw@uwaterloo.ca if you have questions.
+Email: k22agarw@uwaterloo.ca if you have questions, concerns, or want to contribute.
