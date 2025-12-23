@@ -1,9 +1,5 @@
 .env
-__pycache__
-.gitignore
-.ruff_cache
-autograd.ipynb
-test.ipynb
-logfile
-telemetry/Lib
-telemetry/Scripts
+__pycache__/
+*.pyc
+.venv/
+venv/
