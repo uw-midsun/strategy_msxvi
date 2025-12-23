@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime, timezone
-from src.utils import _get_data
+from src.utils import _get_data, _map_irrad
 
 def plot_elevation(sym):
     rdf, _ = _get_data()
@@ -26,7 +26,8 @@ def plot_elevation(sym):
 def plot_irradiance(d, t_start, t_end):
     _, idf = _get_data()
 
-    lat, lon = idf.iloc[d // 5000 - 1][['latitude', 'longitude']]
+    sample = _map_irrad(d, t_start)
+    lat, lon = sample['latitude'], sample['longitude']
 
     mask = ((idf['latitude'] == lat) & (idf['longitude'] == lon) &
             (idf['timestamp'] >= t_start) & (idf['timestamp'] <= t_end))

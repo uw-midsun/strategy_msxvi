@@ -1,23 +1,24 @@
-from scipy.optimize import minimize, OptimizeResult
+from scipy.optimize import minimize
 from .simulation import sim, BAT_CAPACITY
 import numpy as np
 
-def optimize_velocity(initial_velocities, STEP, CURRENT_D):
+def optimize_velocity(initial_velocities, dt, d0, t0):
     """
-    Returns velocity profile to maximize the final battery capacity.
-    Uses SLSQP with battery SOC constraint.
-    """
-    bounds = [(10, 20)] * len(initial_velocities)  # m/s for each velocity
-    args = (STEP, CURRENT_D)
+    Returns velocity profile to maximize distance traveled in given time.
+    Uses SLSQP with battery SOC constraint (min 20%).
 
-    # Battery constraint: minimum SOC >= 20%
-    constraints = [
-        {
-            'type': 'ineq',
-            'fun': battery_constraint,
-            'args': args
-        }
-    ]
+    Args:
+        initial_velocities: Initial velocity profile (m/s)
+        dt: Time step (seconds)
+        d0: Starting distance (meters)
+        t0: Starting time (unix timestamp)
+    """
+    bounds = [(10, 20)] * len(initial_velocities)
+    constraints = [{
+        'type': 'ineq',
+        'fun': battery_constraint,
+        'args': (dt, d0, t0)
+    }]
 
     print("Beginning minimization (SLSQP)...")
     result = minimize(
@@ -25,26 +26,21 @@ def optimize_velocity(initial_velocities, STEP, CURRENT_D):
         initial_velocities,
         bounds=bounds,
         method='SLSQP',
-        args=args,
+        args=(dt, d0, t0),
         constraints=constraints,
-        options={'disp': True, 'maxiter': 500, 'ftol': 1e-6}
+        options={'disp': True, 'maxiter': 50, 'ftol': 1e-6}
     )
     print("Done minimization.")
     return result.x, result.fun
 
-def battery_constraint(velocities, STEP, CURRENT_D):
-    """
-    Constraint: battery SOC must stay >= 20% at all times
-    Returns: min(SOC) - 0.20 (must be >= 0 for constraint satisfaction)
-    """
-    _, sim_data, _ = sim(velocities, STEP, CURRENT_D)
-    capacities = sim_data[:, 4] * STEP  # Convert Wh back to J
+def battery_constraint(velocities, dt, d0, t0):
+    """Battery SOC must stay >= 20%. Returns: min(SOC) - 0.20"""
+    sim_data, _, _ = sim(velocities, dt, d0, t0)
+    capacities = sim_data[:, 4] * dt
     socs = capacities / BAT_CAPACITY
     return np.min(socs) - 0.20
 
-def sim_wrapper(x, STEP, CURRENT_D):
-    _, _, final_d = sim(x, STEP, CURRENT_D)
-    return -final_d  # maximize final distance travelled
-
-def callback(intermediate_result: OptimizeResult):
-    print("Pass this function as a parameter to minimize! Any code run here will be run between every iteration of the minimization.")
+def sim_wrapper(x, dt, d0, t0):
+    """Objective function: maximize distance (minimize negative distance)"""
+    _, final_d, _ = sim(x, dt, d0, t0)
+    return -final_d

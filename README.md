@@ -17,7 +17,7 @@ Successfully achieving these objectives hinges on two factors:
 - designing an efficient solar car (less power out)
 - following an optimal race strategy
 
-Race strategy boils down to a single question:
+Optimal race strategy boils down to a single question:
 
 ### **What speed should we drive at to maximize distance within race constraints?**
 
@@ -37,6 +37,8 @@ The database can run offline locally (*loader.py*) and can be synced (*sync.py*)
 
 ## Simulator
 
+energy = f(location, time, velocity)
+
 *simulation.py* consists of a solver which computes the instantaneous power draw and supply from multiple sources over the course of a stage:
 
 - **Drag Resistance**: based on vehicle aerodynamics, wind and velocity.
@@ -44,15 +46,31 @@ The database can run offline locally (*loader.py*) and can be synced (*sync.py*)
 - **Gradient Resistance**: determined by slope of the road and velocity.
 - **Solar Irradiance**: determined by solar irradiance, vehicle orientation, array efficiency, and velocity.
 
-## MPC
+## Optimization
 
-In progress.
+*optimize.py* uses Sequential Least Squares Programming (SLSQP) to find the optimal velocity profile that maximizes distance traveled over a given time period.
+
+**Constraints:**
+- Velocity bounds: 10-20 m/s at each time step
+- Battery State of Charge (SOC) must remain >= 20% throughout the journey
+
+The optimizer takes an initial velocity profile and iteratively adjusts it until converging on the solution that maximizes distance while satisfying all constraints. This forms the core optimization step used in the MPC loop.
+
+## MPC (To-do)
+
+State: energy, location, time
+Control: velocity
+
+Receding Horizon Loop:
+1. At time k, optimize v[k, k+1, ..., k+n] using SLSQP
+   - Objective: maximize distance (minimize -distance)
+   - Constraints: energy >= 20% SOC, 10 <= v <= 30 m/s
+2. Execute only first control: v[k]
+3. Update state: (location, time, energy) using actual measurements
+4. Repeat at k+1 with new forecast/data
 
 ## Todo
-- overview.py
-- simulator.py
-- test slsqp in optimize.py
-- implement mpc in main.py
-- README
-- refactor db/
+- refactor
+- mpc
+- documentation
 
